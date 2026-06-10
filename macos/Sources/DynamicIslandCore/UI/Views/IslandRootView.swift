@@ -4,8 +4,7 @@ import SwiftUI
 public struct IslandRootView: View {
     @StateObject private var store: TodoStore
     @ObservedObject private var dismissBridge: IslandDismissBridge
-    @State private var isHovered = false
-    @State private var isExpanded = false
+    @State private var expansionState = IslandExpansionState()
     @State private var editingTaskID: KanbanTask.ID?
     @State private var editingTaskBoardName: String?
     @State private var draftTitle = ""
@@ -40,10 +39,10 @@ public struct IslandRootView: View {
     public var body: some View {
         ZStack(alignment: .top) {
             compactSurface
-                .opacity(isExpanded ? 0 : 1)
-                .allowsHitTesting(!isExpanded)
+                .opacity(expansionState.isExpanded ? 0 : 1)
+                .allowsHitTesting(!expansionState.isExpanded)
 
-            if isExpanded {
+            if expansionState.isExpanded {
                 expandedSurface
                     .allowsHitTesting(true)
                     .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .top)))
@@ -57,13 +56,10 @@ public struct IslandRootView: View {
         .preferredColorScheme(.dark)
         .contentShape(RoundedRectangle(cornerRadius: currentRadius, style: .continuous))
         .onHover { hovering in
-            guard !isExpanded else {
-                return
-            }
-
             withAnimation(IslandTheme.animation) {
-                isHovered = hovering
-                onSizeChange(currentSize)
+                if let size = expansionState.setHovered(hovering) {
+                    onSizeChange(size)
+                }
             }
         }
         .onChange(of: store.document) { _ in
@@ -73,7 +69,7 @@ public struct IslandRootView: View {
             handleOutsideClickDismissRequest()
         }
         .background {
-            EscapeKeyMonitor(isEnabled: isExpanded, onEscape: handleEscape)
+            EscapeKeyMonitor(isEnabled: expansionState.isExpanded, onEscape: handleEscape)
                 .frame(width: 0, height: 0)
         }
         .onExitCommand(perform: handleEscape)
@@ -81,24 +77,16 @@ public struct IslandRootView: View {
     }
 
     private var currentSize: CGSize {
-        if isExpanded {
-            return IslandTheme.expandedSize
-        }
-
-        return isHovered ? IslandTheme.hoverSize : IslandTheme.collapsedSize
+        expansionState.size
     }
 
     private var currentRadius: CGFloat {
-        if isExpanded {
-            return IslandTheme.expandedRadius
-        }
-
-        return isHovered ? IslandTheme.hoverRadius : IslandTheme.collapsedRadius
+        expansionState.radius
     }
 
     private var compactSurface: some View {
         HStack(spacing: 9) {
-            if isHovered {
+            if expansionState.isHovered {
                 Image(systemName: "checklist")
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(.white.opacity(0.86))
@@ -121,9 +109,13 @@ public struct IslandRootView: View {
         .background(Color.black.opacity(0.94), in: RoundedRectangle(cornerRadius: currentRadius, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: currentRadius, style: .continuous)
-                .strokeBorder(.white.opacity(isHovered ? 0.13 : 0.05), lineWidth: 1)
+                .strokeBorder(.white.opacity(expansionState.isHovered ? 0.13 : 0.05), lineWidth: 1)
         }
-        .shadow(color: .black.opacity(isHovered ? 0.36 : 0.18), radius: isHovered ? 14 : 7, y: isHovered ? 8 : 3)
+        .shadow(
+            color: .black.opacity(expansionState.isHovered ? 0.36 : 0.18),
+            radius: expansionState.isHovered ? 14 : 7,
+            y: expansionState.isHovered ? 8 : 3
+        )
         .onTapGesture {
             setExpanded(true)
         }
@@ -270,13 +262,8 @@ public struct IslandRootView: View {
 
     private func setExpanded(_ expanded: Bool) {
         withAnimation(IslandTheme.animation) {
-            isExpanded = expanded
-            onSizeChange(expanded ? IslandTheme.expandedSize : currentCollapsedSize)
+            onSizeChange(expansionState.setExpanded(expanded))
         }
-    }
-
-    private var currentCollapsedSize: CGSize {
-        isHovered ? IslandTheme.hoverSize : IslandTheme.collapsedSize
     }
 
     private func toggleTask(_ task: KanbanTask) {
@@ -357,7 +344,7 @@ public struct IslandRootView: View {
     }
 
     private func handleOutsideClickDismissRequest() {
-        guard isExpanded else {
+        guard expansionState.isExpanded else {
             return
         }
 
@@ -379,7 +366,7 @@ public struct IslandRootView: View {
             return
         }
 
-        if isExpanded {
+        if expansionState.isExpanded {
             setExpanded(false)
         }
     }
