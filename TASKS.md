@@ -25,7 +25,7 @@ Implementation plan:
 - [x] Audit current expanded/collapsed gesture handling in `IslandRootView`, `TaskRow`, `NewTaskRow`, and `IslandPanelController`.
 - [x] Refactor panel dismissal into a single coordination layer in `IslandRootView` for escape, commit-and-collapse, and edit/add-task transitions.
 - [x] Update inline edit and add-task flows so focus changes, validation, and persistence failures preserve in-progress text instead of clearing local state.
-- [ ] Implement `Escape` handling so it cancels active inline edit or add-task draft before collapsing the panel.
+- [x] Implement `Escape` handling so it cancels active inline edit or add-task draft before collapsing the panel.
 - [ ] Implement safe transitions between editing one task, editing another task, and opening add-task mode by committing the current context first.
 - [ ] Add AppKit-driven outside-click detection in `IslandPanelController` and route it into the shared dismiss coordinator.
 - [ ] Ensure header clicks and non-working-area background clicks use the shared commit-and-collapse path.

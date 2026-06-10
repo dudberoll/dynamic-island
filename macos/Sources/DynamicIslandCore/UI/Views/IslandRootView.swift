@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 public struct IslandRootView: View {
@@ -61,6 +62,10 @@ public struct IslandRootView: View {
         }
         .onChange(of: store.document) { _ in
             reconcileEditingTask()
+        }
+        .background {
+            EscapeKeyMonitor(isEnabled: isExpanded, onEscape: handleEscape)
+                .frame(width: 0, height: 0)
         }
         .onExitCommand(perform: handleEscape)
         .accessibilityIdentifier("dynamic-island-root")
@@ -334,13 +339,17 @@ public struct IslandRootView: View {
     }
 
     private func handleEscape() {
+        let hadActiveEditState = editingTaskID != nil || pendingBoardID != nil
+
         if editingTaskID != nil {
             cancelEditing()
-            return
         }
 
         if pendingBoardID != nil {
             cancelNewTask()
+        }
+
+        if hadActiveEditState {
             return
         }
 
@@ -576,5 +585,67 @@ private extension Array {
         }
 
         return match
+    }
+}
+
+private struct EscapeKeyMonitor: NSViewRepresentable {
+    let isEnabled: Bool
+    let onEscape: () -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(isEnabled: isEnabled, onEscape: onEscape)
+    }
+
+    func makeNSView(context: Context) -> NSView {
+        context.coordinator.installMonitorIfNeeded()
+        return NSView(frame: .zero)
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        context.coordinator.isEnabled = isEnabled
+        context.coordinator.onEscape = onEscape
+    }
+
+    static func dismantleNSView(_ nsView: NSView, coordinator: Coordinator) {
+        coordinator.removeMonitor()
+    }
+
+    final class Coordinator {
+        private static let escapeKeyCode: UInt16 = 53
+
+        var isEnabled: Bool
+        var onEscape: () -> Void
+        private var monitor: Any?
+
+        init(isEnabled: Bool, onEscape: @escaping () -> Void) {
+            self.isEnabled = isEnabled
+            self.onEscape = onEscape
+        }
+
+        func installMonitorIfNeeded() {
+            guard monitor == nil else {
+                return
+            }
+
+            monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+                guard let self, self.isEnabled, event.keyCode == Self.escapeKeyCode else {
+                    return event
+                }
+
+                self.onEscape()
+                return nil
+            }
+        }
+
+        func removeMonitor() {
+            if let monitor {
+                NSEvent.removeMonitor(monitor)
+                self.monitor = nil
+            }
+        }
+
+        deinit {
+            removeMonitor()
+        }
     }
 }
