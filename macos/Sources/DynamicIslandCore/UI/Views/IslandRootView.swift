@@ -3,6 +3,7 @@ import SwiftUI
 
 public struct IslandRootView: View {
     @StateObject private var store: TodoStore
+    @ObservedObject private var dismissBridge: IslandDismissBridge
     @State private var isHovered = false
     @State private var isExpanded = false
     @State private var editingTaskID: KanbanTask.ID?
@@ -26,8 +27,13 @@ public struct IslandRootView: View {
         }
     }
 
-    public init(sourceURL: URL, onSizeChange: @escaping (CGSize) -> Void = { _ in }) {
+    public init(
+        sourceURL: URL,
+        dismissBridge: IslandDismissBridge = IslandDismissBridge(),
+        onSizeChange: @escaping (CGSize) -> Void = { _ in }
+    ) {
         _store = StateObject(wrappedValue: TodoStore(sourceURL: sourceURL))
+        self.dismissBridge = dismissBridge
         self.onSizeChange = onSizeChange
     }
 
@@ -62,6 +68,9 @@ public struct IslandRootView: View {
         }
         .onChange(of: store.document) { _ in
             reconcileEditingTask()
+        }
+        .onChange(of: dismissBridge.outsideClickRequestID) { _ in
+            handleOutsideClickDismissRequest()
         }
         .background {
             EscapeKeyMonitor(isEnabled: isExpanded, onEscape: handleEscape)
@@ -336,6 +345,14 @@ public struct IslandRootView: View {
         }
 
         setExpanded(false)
+    }
+
+    private func handleOutsideClickDismissRequest() {
+        guard isExpanded else {
+            return
+        }
+
+        commitActiveContextAndCollapse()
     }
 
     private func handleEscape() {
