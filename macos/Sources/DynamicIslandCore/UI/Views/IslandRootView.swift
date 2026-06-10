@@ -367,18 +367,30 @@ public struct IslandRootView: View {
     }
 
     private func prepareActiveContext(allowsEmptyDraftDiscard: Bool) -> ActiveContextResult {
+        var result: ActiveContextResult = .noActiveContext
+
         if let task = activeEditingTask {
             editingTaskID = task.id
             editingTaskBoardName = task.boardName
-            return commitEditing(task)
+            result = commitEditing(task)
+
+            guard result.allowsContinuation else {
+                return result
+            }
         }
 
         if let board = activePendingBoard {
             pendingBoardID = board.id
-            return commitNewTask(board, allowsEmptyDraftDiscard: allowsEmptyDraftDiscard)
+            let addResult = commitNewTask(board, allowsEmptyDraftDiscard: allowsEmptyDraftDiscard)
+
+            guard addResult.allowsContinuation else {
+                return addResult
+            }
+
+            result = addResult
         }
 
-        return .noActiveContext
+        return result
     }
 
     private var activeEditingTask: KanbanTask? {
