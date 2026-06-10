@@ -198,10 +198,19 @@ public struct IslandRootView: View {
                     .padding(.horizontal, 22)
                     .padding(.bottom, 22)
                 }
+                .contentShape(Rectangle())
+                .onTapGesture {}
             }
         }
         .frame(width: IslandTheme.expandedSize.width, height: IslandTheme.expandedSize.height, alignment: .topLeading)
-        .background(Color.black.opacity(0.92), in: RoundedRectangle(cornerRadius: IslandTheme.expandedRadius, style: .continuous))
+        .background {
+            RoundedRectangle(cornerRadius: IslandTheme.expandedRadius, style: .continuous)
+                .fill(Color.black.opacity(0.92))
+                .contentShape(RoundedRectangle(cornerRadius: IslandTheme.expandedRadius, style: .continuous))
+                .onTapGesture {
+                    commitActiveContextAndCollapse()
+                }
+        }
         .overlay {
             RoundedRectangle(cornerRadius: IslandTheme.expandedRadius, style: .continuous)
                 .strokeBorder(.white.opacity(0.1), lineWidth: 1)

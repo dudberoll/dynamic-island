@@ -28,7 +28,7 @@ Implementation plan:
 - [x] Implement `Escape` handling so it cancels active inline edit or add-task draft before collapsing the panel.
 - [x] Implement safe transitions between editing one task, editing another task, and opening add-task mode by committing the current context first.
 - [x] Add AppKit-driven outside-click detection in `IslandPanelController` and route it into the shared dismiss coordinator.
-- [ ] Ensure header clicks and non-working-area background clicks use the shared commit-and-collapse path.
+- [x] Ensure header clicks and non-working-area background clicks use the shared commit-and-collapse path.
 - [ ] Ensure task rows, add-task controls, text fields, and the scrollable working area do not trigger unintended collapse.
 - [ ] Verify the panel still expands from the compact island and returns to the correct compact size after every dismissal path.
 - [ ] Add or update focused tests where practical, then run `swift test` and `swift build`.
