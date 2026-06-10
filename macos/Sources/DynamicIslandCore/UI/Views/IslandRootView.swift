@@ -5,6 +5,7 @@ public struct IslandRootView: View {
     @State private var isHovered = false
     @State private var isExpanded = false
     @State private var editingTaskID: KanbanTask.ID?
+    @State private var editingTaskBoardName: String?
     @State private var draftTitle = ""
     @State private var editingValidationMessage: String?
     @State private var pendingBoardID: KanbanBoard.ID?
@@ -278,6 +279,7 @@ public struct IslandRootView: View {
         }
 
         editingTaskID = currentTask.id
+        editingTaskBoardName = currentTask.boardName
         draftTitle = currentTask.text
         editingValidationMessage = nil
     }
@@ -318,6 +320,7 @@ public struct IslandRootView: View {
 
     private func cancelEditing() {
         editingTaskID = nil
+        editingTaskBoardName = nil
         draftTitle = ""
         editingValidationMessage = nil
     }
@@ -357,6 +360,7 @@ public struct IslandRootView: View {
     private func prepareActiveContext(allowsEmptyDraftDiscard: Bool) -> ActiveContextResult {
         if let task = activeEditingTask {
             editingTaskID = task.id
+            editingTaskBoardName = task.boardName
             return commitEditing(task)
         }
 
@@ -379,11 +383,21 @@ public struct IslandRootView: View {
             return exactMatch
         }
 
-        guard let sourceLine = editingTaskID.sourceLine else {
-            return nil
+        if let sourceLine = editingTaskID.sourceLine {
+            if let boardMatch = tasks.first(where: {
+                $0.boardName == editingTaskBoardName && $0.id.sourceLine == sourceLine
+            }) {
+                return boardMatch
+            }
+
+            if editingTaskBoardName == nil {
+                return tasks.only { $0.id.sourceLine == sourceLine }
+            }
         }
 
-        return tasks.first { $0.id.sourceLine == sourceLine }
+        return tasks.only {
+            $0.boardName == editingTaskBoardName && $0.id.lineIndex == editingTaskID.lineIndex
+        }
     }
 
     private func reconcileEditingTask() {
@@ -394,6 +408,9 @@ public struct IslandRootView: View {
 
         if let reboundTask = activeEditingTask {
             editingTaskID = reboundTask.id
+            editingTaskBoardName = reboundTask.boardName
+        } else if store.operationErrorMessage != nil {
+            editingValidationMessage = editingValidationMessage ?? "Could not save task title"
         } else {
             cancelEditing()
         }
@@ -471,12 +488,20 @@ public struct IslandRootView: View {
         }
 
         if let sourceLine = pendingBoardID.sourceLine {
-            return store.document.boards.first {
+            if let sourceMatch = store.document.boards.first(where: {
                 $0.name == pendingBoardID.name && $0.id.sourceLine == sourceLine
+            }) {
+                return sourceMatch
             }
         }
 
-        return store.document.boards.first { $0.name == pendingBoardID.name }
+        if let lineMatch = store.document.boards.first(where: {
+            $0.name == pendingBoardID.name && $0.id.headingLineIndex == pendingBoardID.headingLineIndex
+        }) {
+            return lineMatch
+        }
+
+        return store.document.boards.only { $0.name == pendingBoardID.name }
     }
 
     private func reconcilePendingBoard() {
@@ -486,6 +511,8 @@ public struct IslandRootView: View {
 
         if let reboundBoard = activePendingBoard {
             pendingBoardID = reboundBoard.id
+        } else if store.operationErrorMessage != nil {
+            newTaskValidationMessage = newTaskValidationMessage ?? "Could not save new task"
         } else {
             cancelNewTask()
         }
@@ -498,12 +525,16 @@ public struct IslandRootView: View {
             return exactMatch
         }
 
-        guard let sourceLine = task.id.sourceLine else {
-            return nil
+        if let sourceLine = task.id.sourceLine {
+            if let sourceMatch = tasks.first(where: {
+                $0.boardName == task.boardName && $0.id.sourceLine == sourceLine
+            }) {
+                return sourceMatch
+            }
         }
 
-        return tasks.first {
-            $0.boardName == task.boardName && $0.id.sourceLine == sourceLine
+        return tasks.only {
+            $0.boardName == task.boardName && $0.id.lineIndex == task.id.lineIndex
         }
     }
 
@@ -512,12 +543,38 @@ public struct IslandRootView: View {
             return exactMatch
         }
 
-        guard let sourceLine = board.id.sourceLine else {
-            return store.document.boards.first { $0.name == board.name }
+        if let sourceLine = board.id.sourceLine {
+            if let sourceMatch = store.document.boards.first(where: {
+                $0.name == board.name && $0.id.sourceLine == sourceLine
+            }) {
+                return sourceMatch
+            }
         }
 
-        return store.document.boards.first {
-            $0.name == board.name && $0.id.sourceLine == sourceLine
+        if let lineMatch = store.document.boards.first(where: {
+            $0.name == board.name && $0.id.headingLineIndex == board.id.headingLineIndex
+        }) {
+            return lineMatch
         }
+
+        return store.document.boards.only {
+            $0.name == board.name
+        }
+    }
+}
+
+private extension Array {
+    func only(where predicate: (Element) -> Bool) -> Element? {
+        var match: Element?
+
+        for element in self where predicate(element) {
+            guard match == nil else {
+                return nil
+            }
+
+            match = element
+        }
+
+        return match
     }
 }

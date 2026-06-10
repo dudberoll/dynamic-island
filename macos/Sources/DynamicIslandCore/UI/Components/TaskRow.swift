@@ -57,12 +57,19 @@ struct TaskRow: View {
             .onChange(of: isTitleFieldFocused) { focused in
                 if !focused, isEditing {
                     onCommitEditing()
+
+                    if validationMessage != nil {
+                        focusTitleField()
+                    }
+                }
+            }
+            .onChange(of: validationMessage) { message in
+                if message != nil, isEditing {
+                    focusTitleField()
                 }
             }
             .onAppear {
-                DispatchQueue.main.async {
-                    isTitleFieldFocused = true
-                }
+                focusTitleField()
             }
             .accessibilityIdentifier("task-title-editor-\(task.id.lineIndex)")
         } else {
@@ -75,6 +82,12 @@ struct TaskRow: View {
                 .contentShape(Rectangle())
                 .onTapGesture(count: 2, perform: onBeginEditing)
                 .accessibilityIdentifier("task-title-\(task.id.lineIndex)")
+        }
+    }
+
+    private func focusTitleField() {
+        DispatchQueue.main.async {
+            isTitleFieldFocused = true
         }
     }
 }
@@ -107,12 +120,19 @@ struct NewTaskRow: View {
                 .onChange(of: isTitleFieldFocused) { focused in
                     if !focused {
                         onCommit()
+
+                        if validationMessage != nil {
+                            focusTitleField()
+                        }
+                    }
+                }
+                .onChange(of: validationMessage) { message in
+                    if message != nil {
+                        focusTitleField()
                     }
                 }
                 .onAppear {
-                    DispatchQueue.main.async {
-                        isTitleFieldFocused = true
-                    }
+                    focusTitleField()
                 }
                 .accessibilityIdentifier("new-task-title-editor")
             }
@@ -129,5 +149,11 @@ struct NewTaskRow: View {
         }
         .background(validationMessage == nil ? Color.clear : Color.red.opacity(0.12), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
         .accessibilityIdentifier("new-task-row")
+    }
+
+    private func focusTitleField() {
+        DispatchQueue.main.async {
+            isTitleFieldFocused = true
+        }
     }
 }
