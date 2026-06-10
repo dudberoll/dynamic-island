@@ -1,13 +1,26 @@
 import Foundation
 
 public enum KanbanMarkdownError: LocalizedError, Equatable {
+    case boardLineNotFound(Int)
+    case lineIsNotBoard(Int)
+    case boardLineChanged(Int)
+    case hiddenBoardCannotBeModified(String)
     case taskLineNotFound(Int)
     case lineIsNotTask(Int)
     case taskLineChanged(Int)
     case emptyTaskTitle
+    case multilineTaskTitle
 
     public var errorDescription: String? {
         switch self {
+        case let .boardLineNotFound(lineIndex):
+            return "Board line \(lineIndex) was not found."
+        case let .lineIsNotBoard(lineIndex):
+            return "Line \(lineIndex) is not an Obsidian Kanban board."
+        case let .boardLineChanged(lineIndex):
+            return "Board line \(lineIndex) changed before the operation could be saved."
+        case let .hiddenBoardCannotBeModified(name):
+            return "Board \(name) is hidden and cannot be modified."
         case let .taskLineNotFound(lineIndex):
             return "Task line \(lineIndex) was not found."
         case let .lineIsNotTask(lineIndex):
@@ -16,6 +29,8 @@ public enum KanbanMarkdownError: LocalizedError, Equatable {
             return "Task line \(lineIndex) changed before the operation could be saved."
         case .emptyTaskTitle:
             return "Task title cannot be empty."
+        case .multilineTaskTitle:
+            return "Task title cannot contain line breaks."
         }
     }
 }
@@ -26,12 +41,18 @@ public struct KanbanMarkdownParser {
     public func parse(_ markdown: String) -> KanbanDocument {
         var boards: [KanbanBoard] = []
         var currentBoardName: String?
+        var currentBoardID: KanbanBoard.ID?
         var currentTasks: [KanbanTask] = []
 
         for (lineIndex, line) in SourceLine.split(markdown).enumerated() {
             if let boardName = parseBoardName(line.content) {
-                appendCurrentBoard(name: &currentBoardName, tasks: &currentTasks, boards: &boards)
+                appendCurrentBoard(id: &currentBoardID, name: &currentBoardName, tasks: &currentTasks, boards: &boards)
                 currentBoardName = boardName.isEmpty ? nil : boardName
+                currentBoardID = boardName.isEmpty ? nil : KanbanBoard.ID(
+                    headingLineIndex: lineIndex,
+                    name: boardName,
+                    sourceLine: line.content
+                )
                 continue
             }
 
@@ -44,7 +65,7 @@ public struct KanbanMarkdownParser {
             }
         }
 
-        appendCurrentBoard(name: &currentBoardName, tasks: &currentTasks, boards: &boards)
+        appendCurrentBoard(id: &currentBoardID, name: &currentBoardName, tasks: &currentTasks, boards: &boards)
         return KanbanDocument(boards: boards)
     }
 
@@ -71,10 +92,7 @@ public struct KanbanMarkdownParser {
     }
 
     public func editTaskTitle(in markdown: String, taskID: KanbanTask.ID, title: String) throws -> String {
-        let cleanedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleanedTitle.isEmpty else {
-            throw KanbanMarkdownError.emptyTaskTitle
-        }
+        let cleanedTitle = try cleanTaskTitle(title)
 
         var lines = SourceLine.split(markdown)
 
@@ -93,25 +111,83 @@ public struct KanbanMarkdownParser {
         return lines.map { $0.content + $0.ending }.joined()
     }
 
+    public func appendTask(in markdown: String, boardID: KanbanBoard.ID, title: String) throws -> String {
+        let cleanedTitle = try cleanTaskTitle(title)
+
+        var lines = SourceLine.split(markdown)
+
+        guard lines.indices.contains(boardID.headingLineIndex) else {
+            throw KanbanMarkdownError.boardLineNotFound(boardID.headingLineIndex)
+        }
+
+        guard let boardName = parseBoardName(lines[boardID.headingLineIndex].content) else {
+            throw KanbanMarkdownError.lineIsNotBoard(boardID.headingLineIndex)
+        }
+
+        try validateBoardLineIdentity(lines[boardID.headingLineIndex].content, boardID: boardID)
+
+        guard !isHiddenBoard(boardName) else {
+            throw KanbanMarkdownError.hiddenBoardCannotBeModified(boardName)
+        }
+
+        let sectionEndIndex = nextBoardLineIndex(in: lines, after: boardID.headingLineIndex) ?? lines.endIndex
+        let taskIndices = lines.indices.filter { index in
+            index > boardID.headingLineIndex && index < sectionEndIndex && taskLineParts(in: lines[index].content) != nil
+        }
+        let anchorIndex = taskIndices.last ?? boardID.headingLineIndex
+        let indentation = taskIndices.last.flatMap { taskIndentation(in: lines[$0].content) } ?? ""
+        let lineEnding = preferredLineEnding(in: lines)
+        let insertIndex = anchorIndex + 1
+        let insertedEnding = insertIndex < lines.endIndex ? lineEnding : ""
+
+        if lines[anchorIndex].ending.isEmpty {
+            lines[anchorIndex].ending = lineEnding
+        }
+
+        lines.insert(
+            SourceLine(content: "\(indentation)- [ ] \(cleanedTitle)", ending: insertedEnding),
+            at: insertIndex
+        )
+
+        return lines.map { $0.content + $0.ending }.joined()
+    }
+
     private func appendCurrentBoard(
+        id: inout KanbanBoard.ID?,
         name: inout String?,
         tasks: inout [KanbanTask],
         boards: inout [KanbanBoard]
     ) {
         guard let name else {
+            id = nil
             tasks.removeAll()
             return
         }
 
         if !isHiddenBoard(name) {
-            boards.append(KanbanBoard(name: name, tasks: tasks))
+            boards.append(KanbanBoard(id: id, name: name, tasks: tasks))
         }
 
+        id = nil
         tasks.removeAll()
     }
 
     private func isHiddenBoard(_ name: String) -> Bool {
         name.trimmingCharacters(in: .whitespacesAndNewlines).localizedCaseInsensitiveCompare("archive") == .orderedSame
+    }
+
+    private func cleanTaskTitle(_ title: String) throws -> String {
+        let cleanedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !cleanedTitle.isEmpty else {
+            throw KanbanMarkdownError.emptyTaskTitle
+        }
+
+        guard !cleanedTitle.contains(where: \.isNewline) else {
+            throw KanbanMarkdownError.multilineTaskTitle
+        }
+
+        return cleanedTitle
     }
 
     private func parseBoardName(_ line: String) -> String? {
@@ -153,6 +229,30 @@ public struct KanbanMarkdownParser {
         guard line == sourceLine else {
             throw KanbanMarkdownError.taskLineChanged(taskID.lineIndex)
         }
+    }
+
+    private func validateBoardLineIdentity(_ line: String, boardID: KanbanBoard.ID) throws {
+        guard let sourceLine = boardID.sourceLine else {
+            return
+        }
+
+        guard line == sourceLine else {
+            throw KanbanMarkdownError.boardLineChanged(boardID.headingLineIndex)
+        }
+    }
+
+    private func nextBoardLineIndex(in lines: [SourceLine], after headingLineIndex: Int) -> Int? {
+        lines.indices.first { index in
+            index > headingLineIndex && parseBoardName(lines[index].content) != nil
+        }
+    }
+
+    private func taskIndentation(in line: String) -> String {
+        String(line.prefix { $0.isWhitespace })
+    }
+
+    private func preferredLineEnding(in lines: [SourceLine]) -> String {
+        lines.first { !$0.ending.isEmpty }?.ending ?? "\n"
     }
 
     private struct TaskLineParts {

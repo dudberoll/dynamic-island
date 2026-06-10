@@ -46,6 +46,17 @@ public final class TodoStore: ObservableObject {
         }
     }
 
+    @discardableResult
+    public func addTask(to board: KanbanBoard, title: String) -> Bool {
+        do {
+            apply(try backend.addTask(to: board, title: title))
+            return true
+        } catch {
+            applyOperationFailure(error)
+            return false
+        }
+    }
+
     private func startWatching(sourceURL: URL) {
         let watcher = KanbanFileWatcher(sourceURL: sourceURL) { [weak self] in
             Task { @MainActor in

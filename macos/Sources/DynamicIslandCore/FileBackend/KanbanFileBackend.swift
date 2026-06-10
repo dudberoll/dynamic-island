@@ -43,4 +43,12 @@ public struct KanbanFileBackend {
         try updatedMarkdown.write(to: sourceURL, atomically: true, encoding: .utf8)
         return KanbanFileSnapshot(markdown: updatedMarkdown, document: parser.parse(updatedMarkdown))
     }
+
+    @discardableResult
+    public func addTask(to board: KanbanBoard, title: String) throws -> KanbanFileSnapshot {
+        let markdown = try String(contentsOf: sourceURL, encoding: .utf8)
+        let updatedMarkdown = try parser.appendTask(in: markdown, boardID: board.id, title: title)
+        try updatedMarkdown.write(to: sourceURL, atomically: true, encoding: .utf8)
+        return KanbanFileSnapshot(markdown: updatedMarkdown, document: parser.parse(updatedMarkdown))
+    }
 }

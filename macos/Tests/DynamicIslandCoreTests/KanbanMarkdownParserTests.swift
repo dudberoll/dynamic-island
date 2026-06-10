@@ -157,6 +157,20 @@ final class KanbanMarkdownParserTests: XCTestCase {
         }
     }
 
+    func testEditTaskTitleRejectsMultilineTitle() {
+        let markdown = """
+        ## main
+
+        - [ ] active task
+        """
+
+        let task = parser.parse(markdown).boards[0].tasks[0]
+
+        XCTAssertThrowsError(try parser.editTaskTitle(in: markdown, taskID: task.id, title: "first\nsecond")) { error in
+            XCTAssertEqual(error as? KanbanMarkdownError, .multilineTaskTitle)
+        }
+    }
+
     func testEditTaskTitlePreservesLineEndings() throws {
         let markdown = "## main\r\n\r\n- [ ] active task\r\n\r\n---\r\n"
         let taskID = KanbanTask.ID(lineIndex: 2)
@@ -233,6 +247,109 @@ final class KanbanMarkdownParserTests: XCTestCase {
 
         XCTAssertThrowsError(try parser.toggleTask(in: changed, taskID: task.id)) { error in
             XCTAssertEqual(error as? KanbanMarkdownError, .taskLineChanged(task.id.lineIndex))
+        }
+    }
+
+    func testAppendTaskAfterLastTaskBeforeNonTaskContent() throws {
+        let markdown = """
+        ## main
+
+        - [ ] first task
+
+        note that should stay after tasks
+
+        ## fork
+
+        - [ ] other task
+        """
+
+        let board = parser.parse(markdown).boards[0]
+        let updated = try parser.appendTask(in: markdown, boardID: board.id, title: "new task")
+
+        XCTAssertTrue(updated.contains("""
+        ## main
+
+        - [ ] first task
+        - [ ] new task
+
+        note that should stay after tasks
+        """))
+        XCTAssertTrue(updated.contains("## fork"))
+    }
+
+    func testAppendTaskToEmptyBoardAfterHeading() throws {
+        let markdown = """
+        ## main
+
+        board note
+
+        ## fork
+
+        - [ ] other task
+        """
+
+        let board = parser.parse(markdown).boards[0]
+        let updated = try parser.appendTask(in: markdown, boardID: board.id, title: "new task")
+
+        XCTAssertTrue(updated.contains("""
+        ## main
+        - [ ] new task
+
+        board note
+        """))
+    }
+
+    func testAppendTaskPreservesLineEndingsAndNoFinalNewline() throws {
+        let markdown = "## main\r\n\r\n- [ ] first task"
+        let board = parser.parse(markdown).boards[0]
+
+        let updated = try parser.appendTask(in: markdown, boardID: board.id, title: "new task")
+
+        XCTAssertEqual(updated, "## main\r\n\r\n- [ ] first task\r\n- [ ] new task")
+    }
+
+    func testAppendTaskRejectsHiddenArchiveBoard() {
+        let markdown = """
+        ## Archive
+
+        - [ ] archived task
+        """
+        let boardID = KanbanBoard.ID(headingLineIndex: 0, name: "Archive", sourceLine: "## Archive")
+
+        XCTAssertThrowsError(try parser.appendTask(in: markdown, boardID: boardID, title: "new task")) { error in
+            XCTAssertEqual(error as? KanbanMarkdownError, .hiddenBoardCannotBeModified("Archive"))
+        }
+    }
+
+    func testAppendTaskRejectsMultilineTitle() {
+        let markdown = """
+        ## main
+
+        - [ ] first task
+        """
+        let board = parser.parse(markdown).boards[0]
+
+        XCTAssertThrowsError(try parser.appendTask(in: markdown, boardID: board.id, title: "first\rsecond")) { error in
+            XCTAssertEqual(error as? KanbanMarkdownError, .multilineTaskTitle)
+        }
+    }
+
+    func testAppendTaskThrowsWhenBoardLineChanged() {
+        let original = """
+        ## main
+
+        - [ ] first task
+        """
+        let changed = """
+        ## renamed
+
+        - [ ] first task
+        """
+
+        let board = parser.parse(original).boards[0]
+
+        XCTAssertThrowsError(try parser.appendTask(in: changed, boardID: board.id, title: "new task")) { error in
+            XCTAssertEqual(error as? KanbanMarkdownError, .boardLineChanged(board.id.headingLineIndex))
         }
     }
 }

@@ -5,11 +5,20 @@ struct BoardColumnView: View {
     let editingTaskID: KanbanTask.ID?
     let draftTitle: String
     let editingValidationMessage: String?
+    let pendingBoardID: KanbanBoard.ID?
+    let newTaskDraftTitle: String
+    let newTaskValidationMessage: String?
     let onToggle: (KanbanTask) -> Void
     let onBeginEditing: (KanbanTask) -> Void
     let onDraftTitleChange: (String) -> Void
     let onCommitEditing: (KanbanTask) -> Void
-    let onCancelEditing: () -> Void
+    let onBeginAdding: (KanbanBoard) -> Void
+    let onNewTaskDraftChange: (String) -> Void
+    let onCommitNewTask: (KanbanBoard) -> Void
+
+    private var isAddingTask: Bool {
+        pendingBoardID == board.id
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -27,6 +36,19 @@ struct BoardColumnView: View {
                     .background(.white.opacity(0.08), in: Capsule())
 
                 Spacer(minLength: 0)
+
+                Button {
+                    onBeginAdding(board)
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.76))
+                        .frame(width: 22, height: 22)
+                        .background(.white.opacity(0.08), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .help("Add task")
+                .accessibilityIdentifier("add-task-\(board.id.headingLineIndex)")
             }
             .padding(.horizontal, 10)
 
@@ -46,12 +68,22 @@ struct BoardColumnView: View {
                         onDraftTitleChange: onDraftTitleChange,
                         onCommitEditing: {
                             onCommitEditing(task)
-                        },
-                        onCancelEditing: onCancelEditing
+                        }
                     )
                 }
 
-                if board.tasks.isEmpty {
+                if isAddingTask {
+                    NewTaskRow(
+                        draftTitle: newTaskDraftTitle,
+                        validationMessage: newTaskValidationMessage,
+                        onDraftTitleChange: onNewTaskDraftChange,
+                        onCommit: {
+                            onCommitNewTask(board)
+                        }
+                    )
+                }
+
+                if board.tasks.isEmpty && !isAddingTask {
                     Text("No tasks")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(.white.opacity(0.46))

@@ -9,7 +9,6 @@ struct TaskRow: View {
     let onBeginEditing: () -> Void
     let onDraftTitleChange: (String) -> Void
     let onCommitEditing: () -> Void
-    let onCancelEditing: () -> Void
 
     @FocusState private var isTitleFieldFocused: Bool
 
@@ -55,7 +54,6 @@ struct TaskRow: View {
             .foregroundStyle(.white.opacity(0.92))
             .focused($isTitleFieldFocused)
             .onSubmit(onCommitEditing)
-            .onExitCommand(perform: onCancelEditing)
             .onChange(of: isTitleFieldFocused) { focused in
                 if !focused, isEditing {
                     onCommitEditing()
@@ -78,5 +76,58 @@ struct TaskRow: View {
                 .onTapGesture(count: 2, perform: onBeginEditing)
                 .accessibilityIdentifier("task-title-\(task.id.lineIndex)")
         }
+    }
+}
+
+struct NewTaskRow: View {
+    let draftTitle: String
+    let validationMessage: String?
+    let onDraftTitleChange: (String) -> Void
+    let onCommit: () -> Void
+
+    @FocusState private var isTitleFieldFocused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 10) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.green)
+                    .frame(width: 18, height: 18)
+
+                TextField("New task", text: Binding(
+                    get: { draftTitle },
+                    set: onDraftTitleChange
+                ))
+                .textFieldStyle(.plain)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.white.opacity(0.92))
+                .focused($isTitleFieldFocused)
+                .onSubmit(onCommit)
+                .onChange(of: isTitleFieldFocused) { focused in
+                    if !focused {
+                        onCommit()
+                    }
+                }
+                .onAppear {
+                    DispatchQueue.main.async {
+                        isTitleFieldFocused = true
+                    }
+                }
+                .accessibilityIdentifier("new-task-title-editor")
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+
+            if let validationMessage {
+                Text(validationMessage)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.red.opacity(0.88))
+                    .padding(.horizontal, 38)
+                    .padding(.bottom, 7)
+            }
+        }
+        .background(validationMessage == nil ? Color.clear : Color.red.opacity(0.12), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+        .accessibilityIdentifier("new-task-row")
     }
 }

@@ -15,11 +15,24 @@ public struct KanbanDocument: Equatable {
 }
 
 public struct KanbanBoard: Identifiable, Equatable {
-    public var id: String { name }
+    public struct ID: Hashable, Codable {
+        public let headingLineIndex: Int
+        public let name: String
+        public let sourceLine: String?
+
+        public init(headingLineIndex: Int, name: String, sourceLine: String? = nil) {
+            self.headingLineIndex = headingLineIndex
+            self.name = name
+            self.sourceLine = sourceLine
+        }
+    }
+
+    public var id: ID
     public var name: String
     public var tasks: [KanbanTask]
 
-    public init(name: String, tasks: [KanbanTask]) {
+    public init(id: ID? = nil, name: String, tasks: [KanbanTask]) {
+        self.id = id ?? ID(headingLineIndex: -1, name: name)
         self.name = name
         self.tasks = tasks
     }

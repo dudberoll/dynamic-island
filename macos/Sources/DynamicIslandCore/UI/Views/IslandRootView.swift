@@ -7,8 +7,22 @@ public struct IslandRootView: View {
     @State private var editingTaskID: KanbanTask.ID?
     @State private var draftTitle = ""
     @State private var editingValidationMessage: String?
+    @State private var pendingBoardID: KanbanBoard.ID?
+    @State private var newTaskDraftTitle = ""
+    @State private var newTaskValidationMessage: String?
 
     private let onSizeChange: (CGSize) -> Void
+
+    private enum ActiveContextResult {
+        case noActiveContext
+        case committed
+        case discardedEmptyDraft
+        case blocked
+
+        var allowsContinuation: Bool {
+            self != .blocked
+        }
+    }
 
     public init(sourceURL: URL, onSizeChange: @escaping (CGSize) -> Void = { _ in }) {
         _store = StateObject(wrappedValue: TodoStore(sourceURL: sourceURL))
@@ -47,6 +61,7 @@ public struct IslandRootView: View {
         .onChange(of: store.document) { _ in
             reconcileEditingTask()
         }
+        .onExitCommand(perform: handleEscape)
         .accessibilityIdentifier("dynamic-island-root")
     }
 
@@ -126,7 +141,7 @@ public struct IslandRootView: View {
             .padding(.top, 18)
             .contentShape(Rectangle())
             .onTapGesture {
-                collapseAfterSavingActiveEdit()
+                commitActiveContextAndCollapse()
             }
 
             if let operationErrorMessage = store.operationErrorMessage {
@@ -146,13 +161,22 @@ public struct IslandRootView: View {
                                 editingTaskID: editingTaskID,
                                 draftTitle: draftTitle,
                                 editingValidationMessage: editingValidationMessage,
+                                pendingBoardID: pendingBoardID,
+                                newTaskDraftTitle: newTaskDraftTitle,
+                                newTaskValidationMessage: newTaskValidationMessage,
                                 onToggle: { task in
-                                    store.toggle(task)
+                                    toggleTask(task)
                                 },
                                 onBeginEditing: beginEditing,
                                 onDraftTitleChange: updateDraftTitle,
-                                onCommitEditing: commitEditing,
-                                onCancelEditing: cancelEditing
+                                onCommitEditing: { task in
+                                    _ = commitEditing(task)
+                                },
+                                onBeginAdding: beginAddingTask,
+                                onNewTaskDraftChange: updateNewTaskDraftTitle,
+                                onCommitNewTask: { board in
+                                    _ = commitNewTask(board, allowsEmptyDraftDiscard: false)
+                                }
                             )
                         }
                     }
@@ -231,9 +255,30 @@ public struct IslandRootView: View {
         isHovered ? IslandTheme.hoverSize : IslandTheme.collapsedSize
     }
 
+    private func toggleTask(_ task: KanbanTask) {
+        guard prepareActiveContextForTransition().allowsContinuation else {
+            return
+        }
+
+        guard let currentTask = resolveCurrentTask(matching: task) else {
+            return
+        }
+
+        store.toggle(currentTask)
+    }
+
     private func beginEditing(_ task: KanbanTask) {
-        editingTaskID = task.id
-        draftTitle = task.text
+        guard prepareActiveContextForTransition().allowsContinuation else {
+            return
+        }
+
+        guard let currentTask = resolveCurrentTask(matching: task) else {
+            cancelEditing()
+            return
+        }
+
+        editingTaskID = currentTask.id
+        draftTitle = currentTask.text
         editingValidationMessage = nil
     }
 
@@ -245,23 +290,29 @@ public struct IslandRootView: View {
         }
     }
 
-    private func commitEditing(_ task: KanbanTask) {
+    @discardableResult
+    private func commitEditing(_ task: KanbanTask) -> ActiveContextResult {
         guard editingTaskID == task.id else {
-            return
+            return .noActiveContext
         }
 
         let cleanedTitle = draftTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanedTitle.isEmpty else {
             editingValidationMessage = "Task title is required"
-            return
+            return .blocked
+        }
+
+        guard !cleanedTitle.contains(where: \.isNewline) else {
+            editingValidationMessage = "Task title must be one line"
+            return .blocked
         }
 
         if store.editTitle(task, title: cleanedTitle) {
             cancelEditing()
+            return .committed
         } else {
-            editingTaskID = nil
-            draftTitle = ""
-            editingValidationMessage = nil
+            editingValidationMessage = "Could not save task title"
+            return .blocked
         }
     }
 
@@ -271,16 +322,50 @@ public struct IslandRootView: View {
         editingValidationMessage = nil
     }
 
-    private func collapseAfterSavingActiveEdit() {
-        if let task = activeEditingTask {
-            commitEditing(task)
-
-            if editingTaskID != nil {
-                return
-            }
+    private func commitActiveContextAndCollapse() {
+        guard prepareActiveContextForDismissal().allowsContinuation else {
+            return
         }
 
         setExpanded(false)
+    }
+
+    private func handleEscape() {
+        if editingTaskID != nil {
+            cancelEditing()
+            return
+        }
+
+        if pendingBoardID != nil {
+            cancelNewTask()
+            return
+        }
+
+        if isExpanded {
+            setExpanded(false)
+        }
+    }
+
+    private func prepareActiveContextForDismissal() -> ActiveContextResult {
+        prepareActiveContext(allowsEmptyDraftDiscard: true)
+    }
+
+    private func prepareActiveContextForTransition() -> ActiveContextResult {
+        prepareActiveContext(allowsEmptyDraftDiscard: true)
+    }
+
+    private func prepareActiveContext(allowsEmptyDraftDiscard: Bool) -> ActiveContextResult {
+        if let task = activeEditingTask {
+            editingTaskID = task.id
+            return commitEditing(task)
+        }
+
+        if let board = activePendingBoard {
+            pendingBoardID = board.id
+            return commitNewTask(board, allowsEmptyDraftDiscard: allowsEmptyDraftDiscard)
+        }
+
+        return .noActiveContext
     }
 
     private var activeEditingTask: KanbanTask? {
@@ -288,18 +373,151 @@ public struct IslandRootView: View {
             return nil
         }
 
-        return store.document.boards
-            .flatMap(\.tasks)
-            .first { $0.id == editingTaskID }
+        let tasks = store.document.boards.flatMap(\.tasks)
+
+        if let exactMatch = tasks.first(where: { $0.id == editingTaskID }) {
+            return exactMatch
+        }
+
+        guard let sourceLine = editingTaskID.sourceLine else {
+            return nil
+        }
+
+        return tasks.first { $0.id.sourceLine == sourceLine }
     }
 
     private func reconcileEditingTask() {
         guard editingTaskID != nil else {
+            reconcilePendingBoard()
             return
         }
 
-        if activeEditingTask == nil {
+        if let reboundTask = activeEditingTask {
+            editingTaskID = reboundTask.id
+        } else {
             cancelEditing()
+        }
+
+        reconcilePendingBoard()
+    }
+
+    private func beginAddingTask(to board: KanbanBoard) {
+        guard prepareActiveContextForTransition().allowsContinuation else {
+            return
+        }
+
+        guard let currentBoard = resolveCurrentBoard(matching: board) else {
+            cancelNewTask()
+            return
+        }
+
+        pendingBoardID = currentBoard.id
+        newTaskDraftTitle = ""
+        newTaskValidationMessage = nil
+    }
+
+    private func updateNewTaskDraftTitle(_ title: String) {
+        newTaskDraftTitle = title
+
+        if !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            newTaskValidationMessage = nil
+        }
+    }
+
+    @discardableResult
+    private func commitNewTask(_ board: KanbanBoard, allowsEmptyDraftDiscard: Bool) -> ActiveContextResult {
+        guard pendingBoardID == board.id else {
+            return .noActiveContext
+        }
+
+        let cleanedTitle = newTaskDraftTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanedTitle.isEmpty else {
+            if allowsEmptyDraftDiscard {
+                cancelNewTask()
+                return .discardedEmptyDraft
+            }
+
+            newTaskValidationMessage = "Task title is required"
+            return .blocked
+        }
+
+        guard !cleanedTitle.contains(where: \.isNewline) else {
+            newTaskValidationMessage = "Task title must be one line"
+            return .blocked
+        }
+
+        if store.addTask(to: board, title: cleanedTitle) {
+            cancelNewTask()
+            return .committed
+        } else {
+            newTaskValidationMessage = "Could not save new task"
+            return .blocked
+        }
+    }
+
+    private func cancelNewTask() {
+        pendingBoardID = nil
+        newTaskDraftTitle = ""
+        newTaskValidationMessage = nil
+    }
+
+    private var activePendingBoard: KanbanBoard? {
+        guard let pendingBoardID else {
+            return nil
+        }
+
+        if let exactMatch = store.document.boards.first(where: { $0.id == pendingBoardID }) {
+            return exactMatch
+        }
+
+        if let sourceLine = pendingBoardID.sourceLine {
+            return store.document.boards.first {
+                $0.name == pendingBoardID.name && $0.id.sourceLine == sourceLine
+            }
+        }
+
+        return store.document.boards.first { $0.name == pendingBoardID.name }
+    }
+
+    private func reconcilePendingBoard() {
+        guard pendingBoardID != nil else {
+            return
+        }
+
+        if let reboundBoard = activePendingBoard {
+            pendingBoardID = reboundBoard.id
+        } else {
+            cancelNewTask()
+        }
+    }
+
+    private func resolveCurrentTask(matching task: KanbanTask) -> KanbanTask? {
+        let tasks = store.document.boards.flatMap(\.tasks)
+
+        if let exactMatch = tasks.first(where: { $0.id == task.id }) {
+            return exactMatch
+        }
+
+        guard let sourceLine = task.id.sourceLine else {
+            return nil
+        }
+
+        return tasks.first {
+            $0.boardName == task.boardName && $0.id.sourceLine == sourceLine
+        }
+    }
+
+    private func resolveCurrentBoard(matching board: KanbanBoard) -> KanbanBoard? {
+        if let exactMatch = store.document.boards.first(where: { $0.id == board.id }) {
+            return exactMatch
+        }
+
+        guard let sourceLine = board.id.sourceLine else {
+            return store.document.boards.first { $0.name == board.name }
+        }
+
+        return store.document.boards.first {
+            $0.name == board.name && $0.id.sourceLine == sourceLine
         }
     }
 }
