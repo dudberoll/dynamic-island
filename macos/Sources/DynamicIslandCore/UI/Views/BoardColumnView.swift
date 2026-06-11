@@ -48,8 +48,8 @@ struct BoardColumnView: View {
                             .background(.white.opacity(0.08), in: Circle())
                     }
                     .buttonStyle(.plain)
-                    .help("Archive completed tasks")
-                    .accessibilityLabel("Archive completed tasks")
+                    .help("Archive completed tasks from this board")
+                    .accessibilityLabel("Archive completed tasks from this board")
                     .accessibilityIdentifier("archive-\(board.id.headingLineIndex)")
 
                     Button {
