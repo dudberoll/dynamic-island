@@ -30,6 +30,7 @@ final class TodoStoreArchiveTests: XCTestCase {
         XCTAssertTrue(updated.contains("## Archive\n\n- [x] main done_main"))
         XCTAssertNil(store.operationErrorMessage)
         XCTAssertEqual(store.document.boards.map(\.name), ["main", "other"])
+        XCTAssertFalse(store.document.boards.contains { $0.name.localizedCaseInsensitiveCompare("Archive") == .orderedSame })
         XCTAssertEqual(store.document.boards[0].tasks.map(\.text), ["main active"])
         XCTAssertEqual(store.document.boards[1].tasks.map(\.text), ["other done", "other active"])
     }

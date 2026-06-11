@@ -44,7 +44,7 @@
 - [x] Add tooltip/help text that describes the action as archiving completed tasks from the board.
 - [x] Archive all completed tasks from the selected source board on click.
 - [x] Leave active tasks in the source board.
-- [ ] Move archived tasks into the hidden `Archive` board.
+- [x] Move archived tasks into the hidden `Archive` board.
 - [ ] Preserve the checkbox state of archived tasks.
 - [ ] Append `_<source board name>` to every archived task title before writing it into `Archive`.
 - [ ] Preserve the order of multiple archived tasks from the same source board.
