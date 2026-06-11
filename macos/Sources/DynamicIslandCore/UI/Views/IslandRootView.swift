@@ -281,7 +281,13 @@ public struct IslandRootView: View {
     }
 
     private func archiveCompletedTasks(in board: KanbanBoard) {
-        _ = board
+        guard let currentBoard = resolveCurrentBoard(matching: board) else {
+            return
+        }
+
+        guard ArchiveCompletedTasksPlan.make(for: currentBoard) != nil else {
+            return
+        }
     }
 
     private func beginEditing(_ task: KanbanTask) {
