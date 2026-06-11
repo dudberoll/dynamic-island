@@ -46,7 +46,7 @@
 - [x] Leave active tasks in the source board.
 - [x] Move archived tasks into the hidden `Archive` board.
 - [x] Preserve the checkbox state of archived tasks.
-- [ ] Append `_<source board name>` to every archived task title before writing it into `Archive`.
+- [x] Append `_<source board name>` to every archived task title before writing it into `Archive`.
 - [ ] Preserve the order of multiple archived tasks from the same source board.
 - [ ] Remove archived task lines from the source board.
 - [ ] Preserve unrelated markdown content in the source board.

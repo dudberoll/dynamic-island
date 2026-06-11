@@ -433,6 +433,19 @@ final class KanbanMarkdownParserTests: XCTestCase {
         """))
     }
 
+    func testArchiveCompletedTasksAppendsSourceBoardNameToTrimmedTitle() throws {
+        let markdown = "##   диплом проект\n\n- [x]   prepare notes   "
+
+        let board = parser.parse(markdown).boards[0]
+        let plan = try XCTUnwrap(ArchiveCompletedTasksPlan.make(for: board))
+        let updated = try parser.archiveCompletedTasks(in: markdown, plan: plan)
+
+        XCTAssertEqual(
+            updated,
+            "##   диплом проект\n\n\n## Archive\n\n- [x] prepare notes_диплом проект"
+        )
+    }
+
     func testArchiveCompletedTasksReturnsOriginalMarkdownWhenPlanIsEmpty() throws {
         let markdown = """
         ## main
