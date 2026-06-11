@@ -10,6 +10,7 @@ struct BoardColumnView: View {
     let newTaskDraftTitle: String
     let newTaskValidationMessage: String?
     let onToggle: (KanbanTask) -> Void
+    let onArchive: (KanbanBoard) -> Void
     let onBeginEditing: (KanbanTask) -> Void
     let onDraftTitleChange: (String) -> Void
     let onCommitEditing: (KanbanTask) -> Void
@@ -38,18 +39,34 @@ struct BoardColumnView: View {
 
                 Spacer(minLength: 0)
 
-                Button {
-                    onBeginAdding(board)
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.76))
-                        .frame(width: 22, height: 22)
-                        .background(.white.opacity(0.08), in: Circle())
+                HStack(spacing: 6) {
+                    Button {
+                        onArchive(board)
+                    } label: {
+                        Image(systemName: "archivebox")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(.white.opacity(0.76))
+                            .frame(width: 22, height: 22)
+                            .background(.white.opacity(0.08), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("Archive completed tasks")
+                    .accessibilityLabel("Archive completed tasks")
+                    .accessibilityIdentifier("archive-\(board.id.headingLineIndex)")
+
+                    Button {
+                        onBeginAdding(board)
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(.white.opacity(0.76))
+                            .frame(width: 22, height: 22)
+                            .background(.white.opacity(0.08), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("Add task")
+                    .accessibilityIdentifier("add-task-\(board.id.headingLineIndex)")
                 }
-                .buttonStyle(.plain)
-                .help("Add task")
-                .accessibilityIdentifier("add-task-\(board.id.headingLineIndex)")
             }
             .padding(.horizontal, 10)
 

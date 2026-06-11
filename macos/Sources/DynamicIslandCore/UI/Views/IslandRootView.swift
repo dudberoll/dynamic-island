@@ -175,6 +175,7 @@ public struct IslandRootView: View {
                                 onToggle: { task in
                                     toggleTask(task)
                                 },
+                                onArchive: archiveCompletedTasks,
                                 onBeginEditing: beginEditing,
                                 onDraftTitleChange: updateDraftTitle,
                                 onCommitEditing: { task in
@@ -277,6 +278,10 @@ public struct IslandRootView: View {
         }
 
         store.toggle(currentTask)
+    }
+
+    private func archiveCompletedTasks(in board: KanbanBoard) {
+        _ = board
     }
 
     private func beginEditing(_ task: KanbanTask) {
