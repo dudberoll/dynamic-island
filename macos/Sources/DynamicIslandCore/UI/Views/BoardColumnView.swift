@@ -43,9 +43,7 @@ struct BoardColumnView: View {
                     Button {
                         onArchive(board)
                     } label: {
-                        Image(systemName: "archivebox")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(.white.opacity(0.76))
+                        ArchiveBoxIcon()
                             .frame(width: 22, height: 22)
                             .background(.white.opacity(0.08), in: Circle())
                     }
@@ -131,5 +129,35 @@ struct BoardColumnView: View {
             }
         }
         .frame(width: 260, alignment: .topLeading)
+    }
+}
+
+private struct ArchiveBoxIcon: View {
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 1.4, style: .continuous)
+                .stroke(iconColor, style: strokeStyle)
+                .frame(width: 12, height: 7.5)
+                .offset(y: 2.5)
+
+            RoundedRectangle(cornerRadius: 1, style: .continuous)
+                .stroke(iconColor, style: strokeStyle)
+                .frame(width: 14, height: 3)
+                .offset(y: -4.5)
+
+            Capsule()
+                .fill(iconColor)
+                .frame(width: 4.5, height: 1.3)
+                .offset(y: -2.4)
+        }
+        .frame(width: 14, height: 14)
+    }
+
+    private var iconColor: Color {
+        .white.opacity(0.76)
+    }
+
+    private var strokeStyle: StrokeStyle {
+        StrokeStyle(lineWidth: 1.45, lineCap: .round, lineJoin: .round)
     }
 }
