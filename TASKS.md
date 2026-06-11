@@ -5,8 +5,6 @@
 - [x] Feature: Inline Task Editing
 - [x] Feature: Add Task Button
 
-## Current
-
 ### Decision: Expanded Panel Dismissal
 
 Accepted behavior:
@@ -32,4 +30,8 @@ Implementation plan:
 - [x] Ensure task rows, add-task controls, text fields, and the scrollable working area do not trigger unintended collapse.
 - [x] Verify the panel still expands from the compact island and returns to the correct compact size after every dismissal path.
 - [x] Add or update focused tests where practical, then run `swift test` and `swift build`.
-- [ ] Mark `Decision: Expanded Panel Dismissal` as done after review and validation.
+- [x] Mark `Decision: Expanded Panel Dismissal` as done after review and validation.
+
+## Current
+
+No active tasks.

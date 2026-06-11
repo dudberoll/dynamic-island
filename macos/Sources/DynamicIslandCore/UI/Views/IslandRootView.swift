@@ -168,6 +168,7 @@ public struct IslandRootView: View {
                                 editingTaskID: editingTaskID,
                                 draftTitle: draftTitle,
                                 editingValidationMessage: editingValidationMessage,
+                                recoveryEditingTask: recoveryEditingTask(for: board),
                                 pendingBoardID: pendingBoardID,
                                 newTaskDraftTitle: newTaskDraftTitle,
                                 newTaskValidationMessage: newTaskValidationMessage,
@@ -390,6 +391,9 @@ public struct IslandRootView: View {
             guard result.allowsContinuation else {
                 return result
             }
+        } else if editingTaskID != nil {
+            editingValidationMessage = editingValidationMessage ?? "Could not save task title"
+            return .blocked
         }
 
         if let board = activePendingBoard {
@@ -432,6 +436,24 @@ public struct IslandRootView: View {
         return tasks.only {
             $0.boardName == editingTaskBoardName && $0.id.lineIndex == editingTaskID.lineIndex
         }
+    }
+
+    private func recoveryEditingTask(for board: KanbanBoard) -> KanbanTask? {
+        guard
+            let editingTaskID,
+            activeEditingTask == nil,
+            store.operationErrorMessage != nil,
+            editingTaskBoardName == board.name
+        else {
+            return nil
+        }
+
+        return KanbanTask(
+            id: editingTaskID,
+            boardName: board.name,
+            text: draftTitle,
+            isCompleted: false
+        )
     }
 
     private func reconcileEditingTask() {

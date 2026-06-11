@@ -5,6 +5,7 @@ struct BoardColumnView: View {
     let editingTaskID: KanbanTask.ID?
     let draftTitle: String
     let editingValidationMessage: String?
+    let recoveryEditingTask: KanbanTask?
     let pendingBoardID: KanbanBoard.ID?
     let newTaskDraftTitle: String
     let newTaskValidationMessage: String?
@@ -72,6 +73,21 @@ struct BoardColumnView: View {
                     )
                 }
 
+                if let recoveryEditingTask {
+                    TaskRow(
+                        task: recoveryEditingTask,
+                        isEditing: true,
+                        draftTitle: draftTitle,
+                        validationMessage: editingValidationMessage,
+                        onToggle: {},
+                        onBeginEditing: {},
+                        onDraftTitleChange: onDraftTitleChange,
+                        onCommitEditing: {
+                            onCommitEditing(recoveryEditingTask)
+                        }
+                    )
+                }
+
                 if isAddingTask {
                     NewTaskRow(
                         draftTitle: newTaskDraftTitle,
@@ -83,7 +99,7 @@ struct BoardColumnView: View {
                     )
                 }
 
-                if board.tasks.isEmpty && !isAddingTask {
+                if board.tasks.isEmpty && !isAddingTask && recoveryEditingTask == nil {
                     Text("No tasks")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(.white.opacity(0.46))
