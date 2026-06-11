@@ -57,6 +57,17 @@ public final class TodoStore: ObservableObject {
         }
     }
 
+    @discardableResult
+    public func archiveCompletedTasks(_ plan: ArchiveCompletedTasksPlan) -> Bool {
+        do {
+            apply(try backend.archiveCompletedTasks(plan))
+            return true
+        } catch {
+            applyOperationFailure(error)
+            return false
+        }
+    }
+
     private func startWatching(sourceURL: URL) {
         let watcher = KanbanFileWatcher(sourceURL: sourceURL) { [weak self] in
             Task { @MainActor in

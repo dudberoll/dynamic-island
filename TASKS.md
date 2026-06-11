@@ -42,7 +42,7 @@
 - [x] Keep the archive button enabled even when the board has no completed tasks.
 - [x] Make archive button clicks a no-op when the board has no completed tasks.
 - [x] Add tooltip/help text that describes the action as archiving completed tasks from the board.
-- [ ] Archive all completed tasks from the selected source board on click.
+- [x] Archive all completed tasks from the selected source board on click.
 - [ ] Leave active tasks in the source board.
 - [ ] Move archived tasks into the hidden `Archive` board.
 - [ ] Preserve the checkbox state of archived tasks.

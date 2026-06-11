@@ -152,6 +152,47 @@ public struct KanbanMarkdownParser {
         return lines.map { $0.content + $0.ending }.joined()
     }
 
+    public func archiveCompletedTasks(in markdown: String, plan: ArchiveCompletedTasksPlan) throws -> String {
+        guard !plan.completedTasks.isEmpty else {
+            return markdown
+        }
+
+        var lines = SourceLine.split(markdown)
+        let boardID = plan.sourceBoard.id
+
+        guard lines.indices.contains(boardID.headingLineIndex) else {
+            throw KanbanMarkdownError.boardLineNotFound(boardID.headingLineIndex)
+        }
+
+        guard let boardName = parseBoardName(lines[boardID.headingLineIndex].content) else {
+            throw KanbanMarkdownError.lineIsNotBoard(boardID.headingLineIndex)
+        }
+
+        try validateBoardLineIdentity(lines[boardID.headingLineIndex].content, boardID: boardID)
+
+        guard !isHiddenBoard(boardName) else {
+            throw KanbanMarkdownError.hiddenBoardCannotBeModified(boardName)
+        }
+
+        let sectionEndIndex = nextBoardLineIndex(in: lines, after: boardID.headingLineIndex) ?? lines.endIndex
+        let archivedLines = try plan.completedTasks.map { task in
+            try archiveLine(
+                for: task,
+                sourceBoardID: boardID,
+                sourceBoardName: boardName,
+                lines: lines,
+                sourceSectionEndIndex: sectionEndIndex
+            )
+        }
+
+        for index in plan.completedTasks.map(\.id.lineIndex).sorted(by: >) {
+            lines.remove(at: index)
+        }
+
+        appendArchivedLines(archivedLines.map(\.content), to: &lines)
+        return lines.map { $0.content + $0.ending }.joined()
+    }
+
     private func appendCurrentBoard(
         id: inout KanbanBoard.ID?,
         name: inout String?,
@@ -219,6 +260,101 @@ public struct KanbanMarkdownParser {
             text: text,
             isCompleted: status == "x" || status == "X"
         )
+    }
+
+    private func archiveLine(
+        for task: KanbanTask,
+        sourceBoardID: KanbanBoard.ID,
+        sourceBoardName: String,
+        lines: [SourceLine],
+        sourceSectionEndIndex: Int
+    ) throws -> SourceLine {
+        let lineIndex = task.id.lineIndex
+
+        guard lines.indices.contains(lineIndex) else {
+            throw KanbanMarkdownError.taskLineNotFound(lineIndex)
+        }
+
+        guard lineIndex > sourceBoardID.headingLineIndex && lineIndex < sourceSectionEndIndex else {
+            throw KanbanMarkdownError.taskLineChanged(lineIndex)
+        }
+
+        let line = lines[lineIndex].content
+        guard let parts = taskLineParts(in: line) else {
+            throw KanbanMarkdownError.lineIsNotTask(lineIndex)
+        }
+
+        try validateTaskLineIdentity(line, taskID: task.id)
+
+        let status = line[parts.checkboxIndex]
+        guard status == "x" || status == "X" else {
+            throw KanbanMarkdownError.taskLineChanged(lineIndex)
+        }
+
+        var archivedContent = line
+        let title = archivedContent[parts.titleRange].trimmingCharacters(in: .whitespaces)
+        archivedContent.replaceSubrange(parts.titleRange, with: " \(title)_\(sourceBoardName)")
+        return SourceLine(content: archivedContent, ending: "")
+    }
+
+    private func appendArchivedLines(_ archivedContents: [String], to lines: inout [SourceLine]) {
+        guard !archivedContents.isEmpty else {
+            return
+        }
+
+        let lineEnding = preferredLineEnding(in: lines)
+
+        if let archiveHeadingIndex = archiveBoardHeadingIndex(in: lines) {
+            let sectionEndIndex = nextBoardLineIndex(in: lines, after: archiveHeadingIndex) ?? lines.endIndex
+            let taskIndices = lines.indices.filter { index in
+                index > archiveHeadingIndex && index < sectionEndIndex && taskLineParts(in: lines[index].content) != nil
+            }
+            let insertIndex = (taskIndices.last ?? archiveHeadingIndex) + 1
+            insert(archivedContents, into: &lines, at: insertIndex, lineEnding: lineEnding)
+            return
+        }
+
+        if !lines.isEmpty {
+            ensureLineEndingBeforeInsertion(at: lines.endIndex, in: &lines, lineEnding: lineEnding)
+            lines.append(SourceLine(content: "", ending: lineEnding))
+        }
+
+        lines.append(SourceLine(content: "## Archive", ending: lineEnding))
+        lines.append(SourceLine(content: "", ending: lineEnding))
+        appendAtEnd(archivedContents, to: &lines, lineEnding: lineEnding)
+    }
+
+    private func archiveBoardHeadingIndex(in lines: [SourceLine]) -> Int? {
+        lines.indices.first { index in
+            parseBoardName(lines[index].content).map(isHiddenBoard) == true
+        }
+    }
+
+    private func insert(_ contents: [String], into lines: inout [SourceLine], at insertIndex: Int, lineEnding: String) {
+        ensureLineEndingBeforeInsertion(at: insertIndex, in: &lines, lineEnding: lineEnding)
+        let insertedLines = contents.map { SourceLine(content: $0, ending: lineEnding) }
+        lines.insert(contentsOf: insertedLines, at: insertIndex)
+    }
+
+    private func appendAtEnd(_ contents: [String], to lines: inout [SourceLine], lineEnding: String) {
+        guard let lastContent = contents.last else {
+            return
+        }
+
+        if contents.count > 1 {
+            lines.append(contentsOf: contents.dropLast().map { SourceLine(content: $0, ending: lineEnding) })
+        }
+
+        lines.append(SourceLine(content: lastContent, ending: ""))
+    }
+
+    private func ensureLineEndingBeforeInsertion(at insertIndex: Int, in lines: inout [SourceLine], lineEnding: String) {
+        let previousIndex = insertIndex - 1
+        guard lines.indices.contains(previousIndex), lines[previousIndex].ending.isEmpty else {
+            return
+        }
+
+        lines[previousIndex].ending = lineEnding
     }
 
     private func validateTaskLineIdentity(_ line: String, taskID: KanbanTask.ID) throws {

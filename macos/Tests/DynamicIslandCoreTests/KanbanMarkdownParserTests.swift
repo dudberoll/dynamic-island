@@ -321,6 +321,137 @@ final class KanbanMarkdownParserTests: XCTestCase {
         }
     }
 
+    func testArchiveCompletedTasksMovesCompletedTasksToExistingArchive() throws {
+        let markdown = """
+        ---
+        kanban-plugin: board
+        ---
+
+        ## main
+
+        - [ ] active task
+        - [x] first done
+        - [X] second done
+
+        note that should stay
+
+        ## Archive
+
+        - [x] old archived
+
+        %% kanban:settings
+        ```
+        {"kanban-plugin":"board"}
+        ```
+        %%
+        """
+
+        let board = parser.parse(markdown).boards[0]
+        let plan = try XCTUnwrap(ArchiveCompletedTasksPlan.make(for: board))
+        let updated = try parser.archiveCompletedTasks(in: markdown, plan: plan)
+
+        XCTAssertTrue(updated.contains("- [ ] active task"))
+        XCTAssertFalse(updated.contains("- [x] first done\n"))
+        XCTAssertFalse(updated.contains("- [X] second done\n"))
+        XCTAssertTrue(updated.contains("note that should stay"))
+        XCTAssertTrue(updated.contains("- [x] old archived\n- [x] first done_main\n- [X] second done_main"))
+        XCTAssertTrue(updated.contains("%% kanban:settings"))
+    }
+
+    func testArchiveCompletedTasksCreatesArchiveBoardWhenMissing() throws {
+        let markdown = """
+        ## main
+
+        - [x] done task
+        - [ ] active task
+        """
+
+        let board = parser.parse(markdown).boards[0]
+        let plan = try XCTUnwrap(ArchiveCompletedTasksPlan.make(for: board))
+        let updated = try parser.archiveCompletedTasks(in: markdown, plan: plan)
+
+        XCTAssertEqual(
+            updated,
+            """
+            ## main
+
+            - [ ] active task
+
+            ## Archive
+
+            - [x] done task_main
+            """
+        )
+    }
+
+    func testArchiveCompletedTasksReturnsOriginalMarkdownWhenPlanIsEmpty() throws {
+        let markdown = """
+        ## main
+
+        - [ ] active task
+        """
+
+        let board = parser.parse(markdown).boards[0]
+        let plan = ArchiveCompletedTasksPlan(sourceBoard: board, completedTasks: [])
+
+        XCTAssertEqual(try parser.archiveCompletedTasks(in: markdown, plan: plan), markdown)
+    }
+
+    func testArchiveCompletedTasksThrowsWhenSourceBoardHeadingChanged() {
+        let original = """
+        ## main
+
+        - [x] done task
+        """
+        let changed = """
+        ## renamed
+
+        - [x] done task
+        """
+
+        let board = parser.parse(original).boards[0]
+        let plan = ArchiveCompletedTasksPlan.make(for: board)!
+
+        XCTAssertThrowsError(try parser.archiveCompletedTasks(in: changed, plan: plan)) { error in
+            XCTAssertEqual(error as? KanbanMarkdownError, .boardLineChanged(board.id.headingLineIndex))
+        }
+    }
+
+    func testArchiveCompletedTasksThrowsWhenCompletedTaskLineChanged() {
+        let original = """
+        ## main
+
+        - [x] done task
+        """
+        let changed = """
+        ## main
+
+        - [x] externally renamed task
+        """
+
+        let board = parser.parse(original).boards[0]
+        let plan = ArchiveCompletedTasksPlan.make(for: board)!
+
+        XCTAssertThrowsError(try parser.archiveCompletedTasks(in: changed, plan: plan)) { error in
+            XCTAssertEqual(error as? KanbanMarkdownError, .taskLineChanged(board.tasks[0].id.lineIndex))
+        }
+    }
+
+    func testArchiveCompletedTasksRejectsUncheckedTaskInPlan() {
+        let markdown = """
+        ## main
+
+        - [ ] active task
+        """
+
+        let board = parser.parse(markdown).boards[0]
+        let plan = ArchiveCompletedTasksPlan(sourceBoard: board, completedTasks: board.tasks)
+
+        XCTAssertThrowsError(try parser.archiveCompletedTasks(in: markdown, plan: plan)) { error in
+            XCTAssertEqual(error as? KanbanMarkdownError, .taskLineChanged(board.tasks[0].id.lineIndex))
+        }
+    }
+
     func testAppendTaskRejectsMultilineTitle() {
         let markdown = """
         ## main

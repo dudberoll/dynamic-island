@@ -288,6 +288,19 @@ public struct IslandRootView: View {
         guard ArchiveCompletedTasksPlan.make(for: currentBoard) != nil else {
             return
         }
+
+        guard prepareActiveContextForTransition().allowsContinuation else {
+            return
+        }
+
+        guard
+            let resolvedBoard = resolveCurrentBoard(matching: currentBoard),
+            let plan = ArchiveCompletedTasksPlan.make(for: resolvedBoard)
+        else {
+            return
+        }
+
+        store.archiveCompletedTasks(plan)
     }
 
     private func beginEditing(_ task: KanbanTask) {
