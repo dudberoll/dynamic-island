@@ -31,5 +31,5 @@ Implementation plan:
 - [x] Ensure header clicks and non-working-area background clicks use the shared commit-and-collapse path.
 - [x] Ensure task rows, add-task controls, text fields, and the scrollable working area do not trigger unintended collapse.
 - [x] Verify the panel still expands from the compact island and returns to the correct compact size after every dismissal path.
-- [ ] Add or update focused tests where practical, then run `swift test` and `swift build`.
+- [x] Add or update focused tests where practical, then run `swift test` and `swift build`.
 - [ ] Mark `Decision: Expanded Panel Dismissal` as done after review and validation.

@@ -41,4 +41,24 @@ final class IslandExpansionStateTests: XCTestCase {
         XCTAssertFalse(state.isHovered)
         XCTAssertFalse(state.isExpanded)
     }
+
+    func testRepeatedTransitionsAreIdempotent() {
+        var state = IslandExpansionState()
+
+        XCTAssertEqual(state.setHovered(true), IslandTheme.hoverSize)
+        XCTAssertEqual(state.setHovered(true), IslandTheme.hoverSize)
+        XCTAssertTrue(state.isHovered)
+
+        XCTAssertEqual(state.setExpanded(true), IslandTheme.expandedSize)
+        XCTAssertEqual(state.setExpanded(true), IslandTheme.expandedSize)
+        XCTAssertTrue(state.isExpanded)
+        XCTAssertTrue(state.isHovered)
+
+        XCTAssertEqual(state.setExpanded(false), IslandTheme.collapsedSize)
+        XCTAssertEqual(state.setHovered(false), IslandTheme.collapsedSize)
+        XCTAssertEqual(state.setHovered(false), IslandTheme.collapsedSize)
+        XCTAssertEqual(state.size, IslandTheme.collapsedSize)
+        XCTAssertFalse(state.isHovered)
+        XCTAssertFalse(state.isExpanded)
+    }
 }
