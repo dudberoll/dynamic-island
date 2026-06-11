@@ -413,6 +413,26 @@ final class KanbanMarkdownParserTests: XCTestCase {
         XCTAssertEqual(updatedBoard.tasks.map(\.isCompleted), [false, false, false])
     }
 
+    func testArchiveCompletedTasksPreservesCheckboxState() throws {
+        let markdown = """
+        ## main
+
+          - [X] uppercase done
+        - [x] lowercase done
+        """
+
+        let board = parser.parse(markdown).boards[0]
+        let plan = try XCTUnwrap(ArchiveCompletedTasksPlan.make(for: board))
+        let updated = try parser.archiveCompletedTasks(in: markdown, plan: plan)
+
+        XCTAssertTrue(updated.contains("""
+        ## Archive
+
+          - [X] uppercase done_main
+        - [x] lowercase done_main
+        """))
+    }
+
     func testArchiveCompletedTasksReturnsOriginalMarkdownWhenPlanIsEmpty() throws {
         let markdown = """
         ## main
