@@ -384,6 +384,35 @@ final class KanbanMarkdownParserTests: XCTestCase {
         )
     }
 
+    func testArchiveCompletedTasksLeavesActiveTasksInSourceOrder() throws {
+        let markdown = """
+        ## main
+
+        - [ ] first active
+        - [x] first done
+        - [ ] second active
+        - [X] second done
+        - [ ] third active
+        """
+
+        let board = parser.parse(markdown).boards[0]
+        let plan = try XCTUnwrap(ArchiveCompletedTasksPlan.make(for: board))
+        let updated = try parser.archiveCompletedTasks(in: markdown, plan: plan)
+
+        XCTAssertTrue(updated.contains("""
+        ## main
+
+        - [ ] first active
+        - [ ] second active
+        - [ ] third active
+
+        ## Archive
+        """))
+        let updatedBoard = try XCTUnwrap(parser.parse(updated).boards.first)
+        XCTAssertEqual(updatedBoard.tasks.map(\.text), ["first active", "second active", "third active"])
+        XCTAssertEqual(updatedBoard.tasks.map(\.isCompleted), [false, false, false])
+    }
+
     func testArchiveCompletedTasksReturnsOriginalMarkdownWhenPlanIsEmpty() throws {
         let markdown = """
         ## main
