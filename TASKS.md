@@ -48,7 +48,7 @@
 - [x] Preserve the checkbox state of archived tasks.
 - [x] Append `_<source board name>` to every archived task title before writing it into `Archive`.
 - [x] Preserve the order of multiple archived tasks from the same source board.
-- [ ] Remove archived task lines from the source board.
+- [x] Remove archived task lines from the source board.
 - [ ] Preserve unrelated markdown content in the source board.
 - [ ] Append archived tasks to an existing `Archive` board when it exists.
 - [ ] Create an `Archive` board at the end of the markdown file when it does not exist.

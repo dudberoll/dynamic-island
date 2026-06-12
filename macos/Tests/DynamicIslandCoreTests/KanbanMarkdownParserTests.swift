@@ -457,6 +457,31 @@ final class KanbanMarkdownParserTests: XCTestCase {
         )
     }
 
+    func testArchiveCompletedTasksRemovesAllTaskLinesFromCompletedOnlySourceBoard() throws {
+        let markdown = """
+        ## main
+
+        - [x] first done
+        - [X] second done
+
+        ## Archive
+
+        - [x] existing archived
+        """
+
+        let board = parser.parse(markdown).boards[0]
+        let plan = try XCTUnwrap(ArchiveCompletedTasksPlan.make(for: board))
+        let updated = try parser.archiveCompletedTasks(in: markdown, plan: plan)
+
+        XCTAssertEqual(
+            updated,
+            "## main\n\n\n## Archive\n\n- [x] existing archived\n- [x] first done_main\n- [X] second done_main\n"
+        )
+        let updatedDocument = parser.parse(updated)
+        XCTAssertEqual(updatedDocument.boards.map(\.name), ["main"])
+        XCTAssertTrue(try XCTUnwrap(updatedDocument.boards.first).tasks.isEmpty)
+    }
+
     func testArchiveCompletedTasksPreservesCheckboxState() throws {
         let markdown = """
         ## main
