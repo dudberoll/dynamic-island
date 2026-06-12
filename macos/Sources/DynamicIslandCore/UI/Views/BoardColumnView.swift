@@ -134,47 +134,49 @@ struct BoardColumnView: View {
     }
 
     private var collapsedStrip: some View {
-        ZStack {
+        VStack(spacing: CollapsedBoardLayout.sectionSpacing) {
+            boardActionButtons(axis: .vertical)
+
+            VStack(spacing: CollapsedBoardLayout.sectionSpacing) {
+                collapsedBoardName
+
+                Text("\(activeTaskCount)")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.56))
+                    .frame(width: CollapsedBoardLayout.countWidth, height: CollapsedBoardLayout.countHeight)
+                    .background(.white.opacity(0.08), in: Capsule())
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                onExpand()
+            }
+        }
+        .padding(.vertical, CollapsedBoardLayout.verticalPadding)
+        .frame(width: IslandTheme.collapsedBoardWidth)
+        .frame(minHeight: CollapsedBoardLayout.totalHeight)
+        .background(.white.opacity(0.075), in: RoundedRectangle(cornerRadius: IslandTheme.controlRadius, style: .continuous))
+        .overlay {
             RoundedRectangle(cornerRadius: IslandTheme.controlRadius, style: .continuous)
-                .fill(.white.opacity(0.075))
-                .overlay {
-                    RoundedRectangle(cornerRadius: IslandTheme.controlRadius, style: .continuous)
-                        .strokeBorder(.white.opacity(0.08), lineWidth: 1)
-                }
-                .contentShape(RoundedRectangle(cornerRadius: IslandTheme.controlRadius, style: .continuous))
-                .onTapGesture {
-                    onExpand()
-                }
+                .strokeBorder(.white.opacity(0.08), lineWidth: 1)
+        }
+        .clipped()
+        .accessibilityIdentifier("collapsed-board-\(board.id.headingLineIndex)")
+    }
 
-            VStack(spacing: 8) {
-                boardActionButtons(axis: .vertical)
-                    .padding(.top, 4)
-
-                Spacer(minLength: 0)
-
+    private var collapsedBoardName: some View {
+        Color.clear
+            .frame(width: CollapsedBoardLayout.nameWidth, height: IslandTheme.collapsedBoardNameHeight)
+            .overlay {
                 Text(board.name)
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.92))
                     .lineLimit(1)
                     .truncationMode(.tail)
-                    .frame(width: 120)
+                    .frame(width: IslandTheme.collapsedBoardNameHeight, height: CollapsedBoardLayout.nameWidth)
                     .rotationEffect(.degrees(-90))
-                    .accessibilityIdentifier("collapsed-board-name-\(board.id.headingLineIndex)")
-
-                Text("\(activeTaskCount)")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.56))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(.white.opacity(0.08), in: Capsule())
-                    .padding(.bottom, 6)
             }
-            .padding(.vertical, 8)
-            .frame(maxHeight: .infinity)
-        }
-        .frame(width: IslandTheme.collapsedBoardWidth)
-        .frame(minHeight: 180)
-        .accessibilityIdentifier("collapsed-board-\(board.id.headingLineIndex)")
+            .clipped()
+            .accessibilityIdentifier("collapsed-board-name-\(board.id.headingLineIndex)")
     }
 
     @ViewBuilder
@@ -183,7 +185,7 @@ struct BoardColumnView: View {
             onArchive(board)
         } label: {
             ArchiveBoxIcon()
-                .frame(width: 22, height: 22)
+                .frame(width: CollapsedBoardLayout.actionSize, height: CollapsedBoardLayout.actionSize)
                 .background(.white.opacity(0.08), in: Circle())
         }
         .buttonStyle(.plain)
@@ -197,7 +199,7 @@ struct BoardColumnView: View {
             Image(systemName: "plus")
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(.white.opacity(0.76))
-                .frame(width: 22, height: 22)
+                .frame(width: CollapsedBoardLayout.actionSize, height: CollapsedBoardLayout.actionSize)
                 .background(.white.opacity(0.08), in: Circle())
         }
         .buttonStyle(.plain)
@@ -211,10 +213,11 @@ struct BoardColumnView: View {
                 addButton
             }
         case .vertical:
-            VStack(spacing: 6) {
+            VStack(spacing: CollapsedBoardLayout.actionSpacing) {
                 archiveButton
                 addButton
             }
+            .frame(width: CollapsedBoardLayout.actionSize)
         }
     }
 }
