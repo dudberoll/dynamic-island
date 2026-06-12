@@ -413,6 +413,50 @@ final class KanbanMarkdownParserTests: XCTestCase {
         XCTAssertEqual(updatedBoard.tasks.map(\.isCompleted), [false, false, false])
     }
 
+    func testArchiveCompletedTasksPreservesCompletedTaskSourceOrder() throws {
+        let markdown = """
+        ## main
+
+        - [x] first done
+        - [ ] active task
+        - [X] second done
+        - [x] third done
+
+        ## Archive
+
+        - [x] existing archived
+        """
+
+        let board = parser.parse(markdown).boards[0]
+        let plan = try XCTUnwrap(ArchiveCompletedTasksPlan.make(for: board))
+        let updated = try parser.archiveCompletedTasks(in: markdown, plan: plan)
+
+        XCTAssertEqual(
+            updated,
+            "## main\n\n- [ ] active task\n\n## Archive\n\n- [x] existing archived\n- [x] first done_main\n- [X] second done_main\n- [x] third done_main\n"
+        )
+    }
+
+    func testArchiveCompletedTasksPreservesCompletedTaskSourceOrderWhenCreatingArchive() throws {
+        let markdown = """
+        ## main
+
+        - [x] first done
+        - [ ] active task
+        - [X] second done
+        - [x] third done
+        """
+
+        let board = parser.parse(markdown).boards[0]
+        let plan = try XCTUnwrap(ArchiveCompletedTasksPlan.make(for: board))
+        let updated = try parser.archiveCompletedTasks(in: markdown, plan: plan)
+
+        XCTAssertEqual(
+            updated,
+            "## main\n\n- [ ] active task\n\n## Archive\n\n- [x] first done_main\n- [X] second done_main\n- [x] third done_main"
+        )
+    }
+
     func testArchiveCompletedTasksPreservesCheckboxState() throws {
         let markdown = """
         ## main
