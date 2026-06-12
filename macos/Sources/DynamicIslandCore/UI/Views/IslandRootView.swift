@@ -5,6 +5,7 @@ public struct IslandRootView: View {
     @StateObject private var store: TodoStore
     @ObservedObject private var dismissBridge: IslandDismissBridge
     @State private var expansionState = IslandExpansionState()
+    @State private var boardCollapseState = BoardCollapseState()
     @State private var editingTaskID: KanbanTask.ID?
     @State private var editingTaskBoardName: String?
     @State private var draftTitle = ""
@@ -64,6 +65,12 @@ public struct IslandRootView: View {
         }
         .onChange(of: store.document) { _ in
             reconcileEditingTask()
+            reconcileCollapsedBoards()
+        }
+        .onChange(of: store.errorMessage) { errorMessage in
+            if errorMessage == nil {
+                reconcileCollapsedBoards()
+            }
         }
         .onChange(of: dismissBridge.outsideClickRequestID) { _ in
             handleOutsideClickDismissRequest()
@@ -496,6 +503,14 @@ public struct IslandRootView: View {
         }
 
         reconcilePendingBoard()
+    }
+
+    private func reconcileCollapsedBoards() {
+        guard store.errorMessage == nil else {
+            return
+        }
+
+        boardCollapseState.reconcile(with: store.document.boards)
     }
 
     private func beginAddingTask(to board: KanbanBoard) {

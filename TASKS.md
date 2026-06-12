@@ -84,7 +84,43 @@
 - [ ] Validate archive behavior while an inline edit is active.
 - [ ] Validate archive behavior while an add-task draft is active.
 
-## Stage 5: Deferred Product Work
+## Stage 5: Local Board Collapse
+
+- [x] Add local collapsed-board state keyed by stable `KanbanBoard.ID` values in `IslandRootView`.
+- [ ] Keep collapsed-board state independent from Obsidian Kanban `list-collapse` settings and markdown writes.
+- [ ] Preserve collapsed state for boards that still exist when the watched markdown document reloads.
+- [ ] Remove stale collapsed state when a board disappears or its identity changes.
+- [ ] Add a shared board-collapse transition that resolves any active inline edit or add-task draft before collapsing.
+- [ ] Collapse a board only when active-context validation and persistence succeed.
+- [ ] Preserve the expanded board and in-progress text when validation or persistence fails.
+- [ ] Make the full expanded board header toggle that board into its collapsed state without triggering panel dismissal.
+- [ ] Add a narrow vertical collapsed-board strip to `BoardColumnView` or a dedicated board view component.
+- [ ] Rotate the collapsed board name by 90 degrees and truncate long names with an ellipsis.
+- [ ] Show the board task count on the collapsed strip.
+- [ ] Reserve a compact area on the collapsed strip for board actions without adding a disclosure arrow.
+- [ ] Make the full collapsed strip a reliable click target that expands the board.
+- [ ] Allow every visible board to be collapsed at the same time.
+- [ ] Keep horizontal scrolling and board ordering stable while boards expand and collapse.
+- [ ] Add a restrained expand/collapse animation that does not resize or collapse the outer island panel.
+- [ ] Ensure board collapse controls do not interfere with task toggles, inline editing, add-task, archive actions, or panel dismissal.
+- [ ] Add focused tests for local collapsed-state reconciliation and active-context transition behavior where practical.
+- [ ] Run `swift test` and `swift build`.
+
+## Stage 6: Board Collapse Manual Validation
+
+- [ ] Validate collapsing a board by clicking its expanded header.
+- [ ] Validate expanding a board by clicking anywhere on its collapsed strip.
+- [ ] Validate the vertical board name, ellipsis behavior, task count, and action area at the target panel size.
+- [ ] Validate multiple adjacent collapsed boards and the all-boards-collapsed state.
+- [ ] Validate that board order remains unchanged across repeated collapse and expand actions.
+- [ ] Validate collapse while inline task editing contains valid, invalid, and unsaved text.
+- [ ] Validate collapse while an add-task draft is empty, valid, invalid, and affected by a persistence failure.
+- [ ] Validate that archive and add-task actions do not accidentally toggle board collapse.
+- [ ] Validate that board collapse does not write or modify Obsidian `list-collapse` settings.
+- [ ] Validate collapsed-state behavior after external markdown reloads, board deletion, and board identity changes.
+- [ ] Validate that panel Escape, header dismissal, outside-click dismissal, and compact sizing still behave correctly.
+
+## Stage 7: Deferred Product Work
 
 - [ ] Design task deletion separately before implementation.
 - [ ] Design manual move-between-boards behavior separately before implementation.
