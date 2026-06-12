@@ -10,6 +10,9 @@ enum IslandTheme {
     static let controlRadius: CGFloat = 12
     static let spacing: CGFloat = 12
     static let topInset: CGFloat = 0
+    static let expandedBoardWidth: CGFloat = 260
+    static let collapsedBoardWidth: CGFloat = 48
 
     static let animation = Animation.spring(response: 0.28, dampingFraction: 0.86)
+    static let boardCollapseAnimation = Animation.spring(response: 0.24, dampingFraction: 0.9)
 }

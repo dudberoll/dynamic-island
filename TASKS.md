@@ -87,24 +87,24 @@
 ## Stage 5: Local Board Collapse
 
 - [x] Add local collapsed-board state keyed by stable `KanbanBoard.ID` values in `IslandRootView`.
-- [ ] Keep collapsed-board state independent from Obsidian Kanban `list-collapse` settings and markdown writes.
-- [ ] Preserve collapsed state for boards that still exist when the watched markdown document reloads.
-- [ ] Remove stale collapsed state when a board disappears or its identity changes.
-- [ ] Add a shared board-collapse transition that resolves any active inline edit or add-task draft before collapsing.
-- [ ] Collapse a board only when active-context validation and persistence succeed.
-- [ ] Preserve the expanded board and in-progress text when validation or persistence fails.
-- [ ] Make the full expanded board header toggle that board into its collapsed state without triggering panel dismissal.
-- [ ] Add a narrow vertical collapsed-board strip to `BoardColumnView` or a dedicated board view component.
-- [ ] Rotate the collapsed board name by 90 degrees and truncate long names with an ellipsis.
-- [ ] Show the board task count on the collapsed strip.
-- [ ] Reserve a compact area on the collapsed strip for board actions without adding a disclosure arrow.
-- [ ] Make the full collapsed strip a reliable click target that expands the board.
-- [ ] Allow every visible board to be collapsed at the same time.
-- [ ] Keep horizontal scrolling and board ordering stable while boards expand and collapse.
-- [ ] Add a restrained expand/collapse animation that does not resize or collapse the outer island panel.
-- [ ] Ensure board collapse controls do not interfere with task toggles, inline editing, add-task, archive actions, or panel dismissal.
-- [ ] Add focused tests for local collapsed-state reconciliation and active-context transition behavior where practical.
-- [ ] Run `swift test` and `swift build`.
+- [x] Keep collapsed-board state independent from Obsidian Kanban `list-collapse` settings and markdown writes.
+- [x] Preserve collapsed state for boards that still exist when the watched markdown document reloads.
+- [x] Remove stale collapsed state when a board disappears or its identity changes.
+- [x] Add a shared board-collapse transition that resolves any active inline edit or add-task draft before collapsing.
+- [x] Collapse a board only when active-context validation and persistence succeed.
+- [x] Preserve the expanded board and in-progress text when validation or persistence fails.
+- [x] Make the full expanded board header toggle that board into its collapsed state without triggering panel dismissal.
+- [x] Add a narrow vertical collapsed-board strip to `BoardColumnView` or a dedicated board view component.
+- [x] Rotate the collapsed board name by 90 degrees and truncate long names with an ellipsis.
+- [x] Show the board task count on the collapsed strip.
+- [x] Reserve a compact area on the collapsed strip for board actions without adding a disclosure arrow.
+- [x] Make the full collapsed strip a reliable click target that expands the board.
+- [x] Allow every visible board to be collapsed at the same time.
+- [x] Keep horizontal scrolling and board ordering stable while boards expand and collapse.
+- [x] Add a restrained expand/collapse animation that does not resize or collapse the outer island panel.
+- [x] Ensure board collapse controls do not interfere with task toggles, inline editing, add-task, archive actions, or panel dismissal.
+- [x] Add focused tests for local collapsed-state reconciliation and active-context transition behavior where practical.
+- [x] Run `swift test` and `swift build`.
 
 ## Stage 6: Board Collapse Manual Validation
 

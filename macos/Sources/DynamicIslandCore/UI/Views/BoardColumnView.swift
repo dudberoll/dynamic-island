@@ -2,6 +2,7 @@ import SwiftUI
 
 struct BoardColumnView: View {
     let board: KanbanBoard
+    let isCollapsed: Bool
     let editingTaskID: KanbanTask.ID?
     let draftTitle: String
     let editingValidationMessage: String?
@@ -17,54 +18,55 @@ struct BoardColumnView: View {
     let onBeginAdding: (KanbanBoard) -> Void
     let onNewTaskDraftChange: (String) -> Void
     let onCommitNewTask: (KanbanBoard) -> Void
+    let onCollapse: () -> Void
+    let onExpand: () -> Void
 
     private var isAddingTask: Bool {
         pendingBoardID == board.id
     }
 
+    private var activeTaskCount: Int {
+        board.tasks.filter { !$0.isCompleted }.count
+    }
+
     var body: some View {
+        Group {
+            if isCollapsed {
+                collapsedStrip
+            } else {
+                expandedColumn
+            }
+        }
+        .frame(width: isCollapsed ? IslandTheme.collapsedBoardWidth : IslandTheme.expandedBoardWidth)
+        .animation(IslandTheme.boardCollapseAnimation, value: isCollapsed)
+    }
+
+    private var expandedColumn: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Text(board.name)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.92))
-                    .lineLimit(1)
+                HStack(spacing: 8) {
+                    Text(board.name)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.92))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
 
-                Text("\(board.tasks.filter { !$0.isCompleted }.count)")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.56))
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 2)
-                    .background(.white.opacity(0.08), in: Capsule())
+                    Text("\(activeTaskCount)")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.56))
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 2)
+                        .background(.white.opacity(0.08), in: Capsule())
 
-                Spacer(minLength: 0)
-
-                HStack(spacing: 6) {
-                    Button {
-                        onArchive(board)
-                    } label: {
-                        ArchiveBoxIcon()
-                            .frame(width: 22, height: 22)
-                            .background(.white.opacity(0.08), in: Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .help("Archive completed tasks from this board")
-                    .accessibilityLabel("Archive completed tasks from this board")
-                    .accessibilityIdentifier("archive-\(board.id.headingLineIndex)")
-
-                    Button {
-                        onBeginAdding(board)
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(.white.opacity(0.76))
-                            .frame(width: 22, height: 22)
-                            .background(.white.opacity(0.08), in: Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .help("Add task")
-                    .accessibilityIdentifier("add-task-\(board.id.headingLineIndex)")
+                    Spacer(minLength: 0)
                 }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    onCollapse()
+                }
+                .accessibilityIdentifier("board-header-\(board.id.headingLineIndex)")
+
+                boardActionButtons(axis: .horizontal)
             }
             .padding(.horizontal, 10)
 
@@ -128,7 +130,92 @@ struct BoardColumnView: View {
                     .strokeBorder(.white.opacity(0.08), lineWidth: 1)
             }
         }
-        .frame(width: 260, alignment: .topLeading)
+        .frame(width: IslandTheme.expandedBoardWidth, alignment: .topLeading)
+    }
+
+    private var collapsedStrip: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: IslandTheme.controlRadius, style: .continuous)
+                .fill(.white.opacity(0.075))
+                .overlay {
+                    RoundedRectangle(cornerRadius: IslandTheme.controlRadius, style: .continuous)
+                        .strokeBorder(.white.opacity(0.08), lineWidth: 1)
+                }
+                .contentShape(RoundedRectangle(cornerRadius: IslandTheme.controlRadius, style: .continuous))
+                .onTapGesture {
+                    onExpand()
+                }
+
+            VStack(spacing: 8) {
+                boardActionButtons(axis: .vertical)
+                    .padding(.top, 4)
+
+                Spacer(minLength: 0)
+
+                Text(board.name)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.92))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(width: 120)
+                    .rotationEffect(.degrees(-90))
+                    .accessibilityIdentifier("collapsed-board-name-\(board.id.headingLineIndex)")
+
+                Text("\(activeTaskCount)")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.56))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(.white.opacity(0.08), in: Capsule())
+                    .padding(.bottom, 6)
+            }
+            .padding(.vertical, 8)
+            .frame(maxHeight: .infinity)
+        }
+        .frame(width: IslandTheme.collapsedBoardWidth)
+        .frame(minHeight: 180)
+        .accessibilityIdentifier("collapsed-board-\(board.id.headingLineIndex)")
+    }
+
+    @ViewBuilder
+    private func boardActionButtons(axis: Axis) -> some View {
+        let archiveButton = Button {
+            onArchive(board)
+        } label: {
+            ArchiveBoxIcon()
+                .frame(width: 22, height: 22)
+                .background(.white.opacity(0.08), in: Circle())
+        }
+        .buttonStyle(.plain)
+        .help("Archive completed tasks from this board")
+        .accessibilityLabel("Archive completed tasks from this board")
+        .accessibilityIdentifier("archive-\(board.id.headingLineIndex)")
+
+        let addButton = Button {
+            onBeginAdding(board)
+        } label: {
+            Image(systemName: "plus")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(.white.opacity(0.76))
+                .frame(width: 22, height: 22)
+                .background(.white.opacity(0.08), in: Circle())
+        }
+        .buttonStyle(.plain)
+        .help("Add task")
+        .accessibilityIdentifier("add-task-\(board.id.headingLineIndex)")
+
+        switch axis {
+        case .horizontal:
+            HStack(spacing: 6) {
+                archiveButton
+                addButton
+            }
+        case .vertical:
+            VStack(spacing: 6) {
+                archiveButton
+                addButton
+            }
+        }
     }
 }
 

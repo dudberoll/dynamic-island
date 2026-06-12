@@ -16,17 +16,6 @@ public struct IslandRootView: View {
 
     private let onSizeChange: (CGSize) -> Void
 
-    private enum ActiveContextResult {
-        case noActiveContext
-        case committed
-        case discardedEmptyDraft
-        case blocked
-
-        var allowsContinuation: Bool {
-            self != .blocked
-        }
-    }
-
     public init(
         sourceURL: URL,
         dismissBridge: IslandDismissBridge = IslandDismissBridge(),
@@ -172,6 +161,7 @@ public struct IslandRootView: View {
                         ForEach(store.document.boards) { board in
                             BoardColumnView(
                                 board: board,
+                                isCollapsed: boardCollapseState.isCollapsed(board.id),
                                 editingTaskID: editingTaskID,
                                 draftTitle: draftTitle,
                                 editingValidationMessage: editingValidationMessage,
@@ -188,10 +178,16 @@ public struct IslandRootView: View {
                                 onCommitEditing: { task in
                                     _ = commitEditing(task)
                                 },
-                                onBeginAdding: beginAddingTask,
+                                onBeginAdding: beginAddingTaskFromBoard,
                                 onNewTaskDraftChange: updateNewTaskDraftTitle,
                                 onCommitNewTask: { board in
                                     _ = commitNewTask(board, allowsEmptyDraftDiscard: false)
+                                },
+                                onCollapse: {
+                                    collapseBoard(board)
+                                },
+                                onExpand: {
+                                    expandBoard(board)
                                 }
                             )
                         }
@@ -511,6 +507,47 @@ public struct IslandRootView: View {
         }
 
         boardCollapseState.reconcile(with: store.document.boards)
+    }
+
+    private func collapseBoard(_ board: KanbanBoard) {
+        guard let currentBoard = resolveCurrentBoard(matching: board) else {
+            return
+        }
+
+        guard !boardCollapseState.isCollapsed(currentBoard.id) else {
+            return
+        }
+
+        guard BoardCollapseTransition.allowsCollapse(after: prepareActiveContextForTransition()) else {
+            return
+        }
+
+        withAnimation(IslandTheme.boardCollapseAnimation) {
+            boardCollapseState.collapse(currentBoard.id)
+        }
+    }
+
+    private func expandBoard(_ board: KanbanBoard) {
+        guard let currentBoard = resolveCurrentBoard(matching: board) else {
+            return
+        }
+
+        guard boardCollapseState.isCollapsed(currentBoard.id) else {
+            return
+        }
+
+        withAnimation(IslandTheme.boardCollapseAnimation) {
+            boardCollapseState.expand(currentBoard.id)
+        }
+    }
+
+    private func beginAddingTaskFromBoard(_ board: KanbanBoard) {
+        if let currentBoard = resolveCurrentBoard(matching: board),
+           boardCollapseState.isCollapsed(currentBoard.id) {
+            expandBoard(board)
+        }
+
+        beginAddingTask(to: board)
     }
 
     private func beginAddingTask(to board: KanbanBoard) {

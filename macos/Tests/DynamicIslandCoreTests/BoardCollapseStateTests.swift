@@ -51,6 +51,31 @@ final class BoardCollapseStateTests: XCTestCase {
         XCTAssertFalse(state.isCollapsed(board.id))
     }
 
+    func testCollapseAndExpandMutateStateExplicitly() {
+        let boardID = makeBoard(name: "main", headingLineIndex: 3).id
+        var state = BoardCollapseState()
+
+        state.collapse(boardID)
+        XCTAssertTrue(state.isCollapsed(boardID))
+
+        state.expand(boardID)
+        XCTAssertFalse(state.isCollapsed(boardID))
+    }
+
+    func testBoardCollapseTransitionBlocksOnActiveContextFailure() {
+        XCTAssertFalse(BoardCollapseTransition.allowsCollapse(after: .blocked))
+        XCTAssertTrue(BoardCollapseTransition.allowsCollapse(after: .noActiveContext))
+        XCTAssertTrue(BoardCollapseTransition.allowsCollapse(after: .committed))
+        XCTAssertTrue(BoardCollapseTransition.allowsCollapse(after: .discardedEmptyDraft))
+    }
+
+    func testActiveContextResultContinuationSemantics() {
+        XCTAssertTrue(ActiveContextResult.noActiveContext.allowsContinuation)
+        XCTAssertTrue(ActiveContextResult.committed.allowsContinuation)
+        XCTAssertTrue(ActiveContextResult.discardedEmptyDraft.allowsContinuation)
+        XCTAssertFalse(ActiveContextResult.blocked.allowsContinuation)
+    }
+
     private func makeBoard(name: String, headingLineIndex: Int) -> KanbanBoard {
         KanbanBoard(
             id: KanbanBoard.ID(
