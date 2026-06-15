@@ -40,6 +40,21 @@ final class KanbanMarkdownParserTests: XCTestCase {
         XCTAssertEqual(document.activeTaskCount, 2)
     }
 
+    func testParsesAlternativeListMarkers() {
+        let markdown = """
+        ## main
+
+        - [ ] hyphen marker
+        * [ ] asterisk marker
+        + [ ] plus marker
+        """
+
+        let document = parser.parse(markdown)
+
+        XCTAssertEqual(document.boards.count, 1)
+        XCTAssertEqual(document.boards[0].tasks.map(\.text), ["hyphen marker", "asterisk marker", "plus marker"])
+    }
+
     func testTogglePreservesUnrelatedMarkdown() throws {
         let markdown = """
         ---

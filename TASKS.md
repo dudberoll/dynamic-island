@@ -49,27 +49,27 @@
 - [x] Append `_<source board name>` to every archived task title before writing it into `Archive`.
 - [x] Preserve the order of multiple archived tasks from the same source board.
 - [x] Remove archived task lines from the source board.
-- [ ] Preserve unrelated markdown content in the source board.
-- [ ] Append archived tasks to an existing `Archive` board when it exists.
-- [ ] Create an `Archive` board at the end of the markdown file when it does not exist.
-- [ ] Keep the `Archive` board hidden from the island UI after archive operations.
-- [ ] Resolve any active inline edit or add-task draft before archiving.
-- [ ] Cancel archiving and preserve the draft when validation or persistence fails.
-- [ ] Resolve archive operations against the latest known markdown state.
-- [ ] Refuse unsafe archive operations when the source board or task lines cannot be matched safely.
-- [ ] Show an operation error when archive cannot be completed safely.
+- [x] Preserve unrelated markdown content in the source board.
+- [x] Append archived tasks to an existing `Archive` board when it exists.
+- [x] Create an `Archive` board at the end of the markdown file when it does not exist.
+- [x] Keep the `Archive` board hidden from the island UI after archive operations.
+- [x] Resolve any active inline edit or add-task draft before archiving.
+- [x] Cancel archiving and preserve the draft when validation or persistence fails.
+- [x] Resolve archive operations against the latest known markdown state.
+- [x] Refuse unsafe archive operations when the source board or task lines cannot be matched safely.
+- [x] Show an operation error when archive cannot be completed safely.
 
 ## Stage 3: Archive Markdown Tests
 
-- [ ] Add parser/writer tests for moving completed tasks into an existing `Archive` board.
-- [ ] Add parser/writer tests for creating `Archive` when it does not exist.
-- [ ] Add tests that archived task titles receive `_<source board name>`.
-- [ ] Add tests that active tasks remain in the source board.
-- [ ] Add tests that multiple archived tasks preserve source order.
-- [ ] Add tests that unrelated markdown, settings blocks, hidden archive content, and line endings are preserved as much as practical.
-- [ ] Add tests that unsafe archive conflicts do not modify markdown.
-- [ ] Run `swift test`.
-- [ ] Run `swift build`.
+- [x] Add parser/writer tests for moving completed tasks into an existing `Archive` board.
+- [x] Add parser/writer tests for creating `Archive` when it does not exist.
+- [x] Add tests that archived task titles receive `_<source board name>`.
+- [x] Add tests that active tasks remain in the source board.
+- [x] Add tests that multiple archived tasks preserve source order.
+- [x] Add tests that unrelated markdown, settings blocks, hidden archive content, and line endings are preserved as much as practical.
+- [x] Add tests that unsafe archive conflicts do not modify markdown.
+- [x] Run `swift test`.
+- [x] Run `swift build`.
 
 ## Stage 4: Manual Validation
 

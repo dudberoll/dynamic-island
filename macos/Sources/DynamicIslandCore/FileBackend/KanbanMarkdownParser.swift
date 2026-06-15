@@ -413,7 +413,12 @@ public struct KanbanMarkdownParser {
             index = line.index(after: index)
         }
 
-        guard index < line.endIndex, line[index] == "-" else {
+        guard index < line.endIndex else {
+            return nil
+        }
+
+        let marker = line[index]
+        guard marker == "-" || marker == "*" || marker == "+" else {
             return nil
         }
 
