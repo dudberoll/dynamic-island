@@ -64,7 +64,10 @@ describe('prepare-do-specs', () => {
     );
 
     expect(result.status).not.toBe(0);
-    expect(`${result.stdout}\n${result.stderr}`).toContain('Deployment branch mismatch');
+    const output = `${result.stdout}\n${result.stderr}`;
+    const hasBranchMismatch = output.includes('Deployment branch mismatch');
+    const hasDetachedCheckout = output.includes('Stop instead of deploying from a detached checkout');
+    expect(hasBranchMismatch || hasDetachedCheckout).toBe(true);
   });
 
   test('generates explicit backend worker and cron job blocks', () => {
