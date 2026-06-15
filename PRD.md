@@ -86,6 +86,8 @@ After the edit is saved, Obsidian sees the updated markdown file. If the same ta
 
 ## Feature: Add Task Button
 
+Status: Done.
+
 Each visible board has an add task button.
 
 Clicking the add task button creates a new editable task row at the end of that board.
@@ -97,6 +99,30 @@ When the user enters a title and saves, the task is appended to the correspondin
 If the user cancels creation before entering a title, no task is written to the markdown file.
 
 New tasks are not added to hidden archive boards.
+
+## Feature: Archive Completed Tasks
+
+Each visible board has an archive button in its board header. The archive button appears immediately to the left of the add task button.
+
+The archive button uses a minimal archive-box icon. The icon should feel visually close to a simple outlined storage box: a small horizontal lid above a rectangular box body. If the system icon set does not provide a close enough match, the app should use a custom minimal line icon.
+
+Clicking the archive button archives all completed tasks in that board. Active tasks are not archived.
+
+The archive button is always enabled. If a board has no completed tasks, clicking the archive button performs no operation and does not show an error.
+
+Archived tasks are moved from their current board into the hidden `Archive` board. After a successful archive operation, archived tasks disappear from the visible board list because the `Archive` board is not shown in the island.
+
+When a task is archived, the source board name is appended to the task title before it is written into `Archive`. The app appends an underscore followed by the source board name. For example, a task named `название_задачи` archived from the `диплом` board becomes `название_задачи_диплом`.
+
+The task checkbox state is preserved when archiving. Completed tasks are written into `Archive` as completed markdown tasks.
+
+If multiple completed tasks are archived from the same board, they are appended to `Archive` in the same order they appeared in the source board.
+
+Archiving removes the archived task lines from the source board. Other markdown content in the source board remains in place.
+
+Before archiving, the app resolves any active inline edit or add-task draft using the same shared transition rules as other task actions. If the active context commits successfully, or if an empty add-task draft can be discarded, archiving continues. If validation or persistence fails, archiving is cancelled, the island remains expanded, and the user's draft stays visible.
+
+If the `Archive` board already exists in the markdown file, archived tasks are appended to that board. If the `Archive` board does not exist, the app creates it at the end of the markdown file.
 
 ## Feature: Error And Empty States
 
@@ -121,6 +147,8 @@ The app does not provide manual refresh controls while automatic synchronization
 Markdown parser and writer behavior must be covered by focused Swift tests.
 
 Tests must cover parsing visible boards, hiding `Archive`, toggling task completion while preserving unrelated markdown, editing task titles while preserving checkbox state and unrelated markdown, and appending a new task to a board.
+
+Tests for archive behavior must cover moving completed tasks into `Archive`, preserving task order, appending the source board name to each archived title, creating `Archive` when it does not exist, preserving unrelated markdown, and leaving active tasks in the source board.
 
 The macOS package must build through SwiftPM.
 
@@ -154,11 +182,51 @@ When the user adds a task, the app appends the new task after the last task in t
 
 The app must preserve non-task content and settings blocks in the board section as much as practical.
 
+### Decision: Archive Button Placement
+
+Each visible board header includes an archive button placed immediately to the left of the add task button.
+
+The archive button uses only an icon, without a visible text label. The button has a tooltip that describes the action as archiving completed tasks from the board.
+
+The archive button remains enabled even when the board has no completed tasks. In that case, clicking the button does nothing.
+
+### Decision: Archive Board Creation
+
+Archive operations target a board named `Archive`.
+
+If an `Archive` board already exists, archived tasks are appended to it.
+
+If no `Archive` board exists, the app creates one at the end of the markdown file and appends archived tasks there.
+
+The `Archive` board remains hidden from the island UI.
+
+### Decision: Archive Conflict Behavior
+
+Before archiving completed tasks, the app reloads or resolves against the latest known markdown state.
+
+The app archives only completed tasks that still exist in the selected source board and can be matched safely.
+
+If the source board or task lines changed in a way that makes the archive operation unsafe, the operation does not modify the markdown file and the app shows an operation error.
+
+Archive operations must preserve unrelated markdown content, hidden archive content, Obsidian settings blocks, and the file's line-ending style as much as practical.
+
 ### Decision: Board Visibility Beyond Archive
 
 The app shows every non-empty `##` board except `Archive`, regardless of Obsidian Kanban plugin UI state.
 
 The app does not read collapsed-list state, hidden-list state, or other Obsidian Kanban plugin settings when deciding board visibility in v1.
+
+### Decision: Local Board Collapse
+
+Boards can be collapsed independently inside the expanded island panel.
+
+Collapsed state is local to the island UI and is not read from or written to the Obsidian Kanban `list-collapse` setting. It does not need to persist across app launches.
+
+An expanded board collapses when the user clicks its header. A collapsed board appears as a narrow vertical strip and expands when the user clicks anywhere on that strip. All boards may be collapsed at the same time.
+
+The collapsed strip shows the board name rotated 90 degrees, the board task count, and space for board actions. It does not show a disclosure arrow. Long board names are truncated with an ellipsis.
+
+If inline task editing or add-task creation is active when the user attempts to collapse a board, the app first attempts to commit the active context. The board collapses only when validation and persistence succeed. Validation or persistence failures keep the board expanded and preserve the user's in-progress text.
 
 ### Decision: Expanded Panel Dismissal
 

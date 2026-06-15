@@ -1,4 +1,16 @@
-# Vibe Coding Template
+# Dynamic Island
+
+## Project Bootstrap Choices
+
+- Project name/slug: `dynamic-island`.
+- Current product goal: native macOS Dynamic Island-style overlay.
+- Active app surface: macOS native app implemented with SwiftPM, AppKit, and SwiftUI.
+- Source of tasks: `/Users/dudberoll/obsidian-local/to-dos.md`.
+- Deferred but kept for now: existing `mobile`, `backend`, `webapp`, `website`, auth, payments, push notifications, EAS, and deployment setup from the template.
+- Stack note: the Expo/React Native `mobile` branch is useful as a monorepo/product scaffold, but the macOS overlay itself should stay native because it needs AppKit window/panel behavior (`NSPanel`, click-through hit testing, screen geometry, always-on-top spaces behavior).
+- macOS implementation rules live in [macos/README.md](macos/README.md).
+
+## Template Baseline
 
 <p align="center">
   <img src="docs/assets/vibe_tmpl_schema.png" alt="Vibe Coding Template architecture schema" width="100%">
@@ -213,6 +225,9 @@ Test runners use the separate Docker Compose `postgres_test` service and the `TE
 - `bun run --cwd mobile e2e:maestro:audit` - check the mobile Maestro flow and runner inputs for known flaky patterns.
 - `bun run --cwd backend prisma:migrate` - create/apply a Prisma migration in development.
 - `bun run --cwd backend prisma:deploy` - apply existing Prisma migrations on a server.
+- `swift build` from `macos/` - build the native macOS overlay.
+- `swift test` from `macos/` - run the macOS parser/store test suite.
+- `swift run DynamicIsland` from `macos/` - launch the SwiftPM overlay executable.
 
 ## Project READMEs
 
@@ -226,6 +241,7 @@ Test runners use the separate Docker Compose `postgres_test` service and the `TE
 - [mobile/README.md](mobile/README.md) - Expo setup, push notifications, development builds, and Maestro smoke.
 - [website/README.md](website/README.md) - Astro website commands, hybrid rendering, and publishing model.
 - [packages/contracts/README.md](packages/contracts/README.md) - shared schema and DTO rules.
+- [macos/README.md](macos/README.md) - native macOS overlay architecture, Obsidian Kanban contract, and validation.
 
 ## Architecture Notes
 

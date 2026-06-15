@@ -30,20 +30,20 @@ if (googleIosUrlScheme) {
 
 module.exports = {
   expo: {
-    name: 'mobile',
-    slug: 'mobile',
+    name: 'Dynamic Island',
+    slug: 'dynamic-island',
     version: '1.0.0',
     orientation: 'portrait',
     icon: './assets/images/icon.png',
-    scheme: 'mobile',
+    scheme: 'dynamic-island',
     userInterfaceStyle: 'automatic',
     ios: {
-      bundleIdentifier: 'com.webappdemo.mobile',
+      bundleIdentifier: 'com.dynamicisland.mobile',
       icon: './assets/expo.icon',
       usesAppleSignIn: true,
     },
     android: {
-      package: 'com.webappdemo.mobile',
+      package: 'com.dynamicisland.mobile',
       adaptiveIcon: {
         backgroundColor: '#E6F4FE',
         foregroundImage: './assets/images/android-icon-foreground.png',
